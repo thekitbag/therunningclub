@@ -10,14 +10,35 @@ import { resolve } from 'node:path';
  * script that talks to the same test database the server is configured with.
  */
 
+/** Variables the browser suite needs, wherever they come from. */
+const REQUIRED = ['DATABASE_URL', 'APP_ORIGIN', 'SESSION_SECRET', 'JUSTGIVING_URL'] as const;
+
+/**
+ * Configuration for the browser suite.
+ *
+ * Reads `.env.e2e` for local runs, and falls back to the ambient environment so
+ * CI can supply the same values directly without committing a file.
+ */
 export function e2eEnv(): Record<string, string> {
   const path = resolve(process.cwd(), '.env.e2e');
   const env: Record<string, string> = {};
+
   let contents: string;
   try {
     contents = readFileSync(path, 'utf8');
   } catch {
-    throw new Error('.env.e2e is missing. Copy .env.e2e.example to .env.e2e.');
+    for (const key of REQUIRED) {
+      const value = process.env[key];
+      if (!value) {
+        throw new Error(
+          `.env.e2e is missing and ${key} is not set. ` +
+            'Copy .env.e2e.example to .env.e2e, or export the variables directly.',
+        );
+      }
+      env[key] = value;
+    }
+    if (process.env.LOG_LEVEL) env.LOG_LEVEL = process.env.LOG_LEVEL;
+    return env;
   }
   for (const line of contents.split('\n')) {
     const trimmed = line.trim();

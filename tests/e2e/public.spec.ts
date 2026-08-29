@@ -116,20 +116,25 @@ test('races list puts upcoming before past and never exposes a draft', async ({ 
 });
 
 test('scoring explanations are available in plain language', async ({ page }) => {
+  // Activated with the keyboard rather than a click: it removes any dependence
+  // on hit-testing a long scrolled page, and it proves the disclosure is
+  // operable without a pointer, which is a requirement in its own right.
   await page.goto('/time-trial/winter-2025-26');
   await page.waitForLoadState('networkidle');
 
   const timeTrialSummary = page.getByText('How time-trial scoring works');
-  await timeTrialSummary.scrollIntoViewIfNeeded();
-  await timeTrialSummary.click();
+  await timeTrialSummary.focus();
+  await expect(timeTrialSummary).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.getByText(/best four round totals count/i)).toBeVisible();
 
   await page.goto('/club-championship/2025');
   await page.waitForLoadState('networkidle');
 
   const championshipSummary = page.getByText('How club championship scoring works');
-  await championshipSummary.scrollIntoViewIfNeeded();
-  await championshipSummary.click();
+  await championshipSummary.focus();
+  await expect(championshipSummary).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.getByText(/low score wins/i)).toBeVisible();
 });
 

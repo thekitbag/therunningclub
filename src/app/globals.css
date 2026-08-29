@@ -116,13 +116,14 @@
 
 html {
   -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
+  /*
+   * Deliberately no `scroll-behavior: smooth`. On a long results page an
+   * animated scroll delays the skip link by hundreds of milliseconds, which is
+   * exactly the wrong trade for the people who rely on it most.
+   */
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
   *,
   *::before,
   *::after {
@@ -328,11 +329,13 @@ main {
   display: flex;
   align-items: center;
   min-height: 44px;
-  padding: 0.5rem 0.875rem;
+  /* Tightened on the narrowest phones so all four sections fit without
+     scrolling; the rail still scrolls below that. */
+  padding: 0.5rem 0.5rem;
   text-decoration: none;
   color: var(--ink-soft);
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   white-space: nowrap;
   border-bottom: 3px solid transparent;
   transition:
@@ -352,6 +355,12 @@ main {
 /* The underline alone would be colour-signalling, so the label is bold too. */
 .site-nav__link[aria-current='page'] {
   font-weight: 800;
+}
+
+@media (min-width: 26rem) {
+  .site-nav__link {
+    padding-inline: 0.75rem;
+  }
 }
 
 @media (min-width: 52rem) {
@@ -624,16 +633,35 @@ table {
   font-size: 0.9375rem;
 }
 
+/*
+ * A caption belongs to the table, so it inherits the table's width — which on a
+ * wide competition table means it stretches far beyond the visible area and
+ * gets clipped by the horizontal scroll. Sticking it to the left edge and
+ * capping its width keeps the explanation readable without scrolling, and it
+ * stays put while the columns move underneath.
+ *
+ * It is also set in normal case: these captions carry real instructions about
+ * how to read the table, and long uppercase text is markedly harder to read.
+ */
 caption {
+  position: sticky;
+  left: 0;
+  width: max-content;
+  /*
+   * `100%` here would resolve against the *table*, which is exactly the width
+   * we are trying not to inherit, so the bound is taken from the viewport.
+   */
+  max-width: min(calc(100vw - 2.5rem), 44rem);
+  box-sizing: border-box;
   text-align: left;
-  padding: 0.875rem 1rem;
-  font-weight: 700;
-  font-family: var(--font-display), sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem 0.875rem;
+  font-weight: 500;
   font-size: 0.8125rem;
-  color: var(--ink-soft);
+  line-height: 1.5;
+  color: var(--ink-faint);
   border-bottom: 1px solid var(--border-soft);
+  white-space: normal;
+  text-wrap: pretty;
 }
 
 th,
