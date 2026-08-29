@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# testing
+/coverage
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
+# prisma generated client
+/src/generated/
+/prisma/generated/
+
+# env
+.env
+.env.local
+.env.test
+.env.e2e
+.env.*.local
+.env.development
+.env.production
+!.env.example
+!.env.test.example
+!.env.e2e.example
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+.vercel
+.idea/
+.vscode/

@@ -1,0 +1,158 @@
+/*
+ * Admin-only styling.
+ *
+ * The public site is phone-first; this is the opposite. Volunteers enter a
+ * whole round of results in one sitting on a laptop, so the priority here is
+ * information density and keyboard flow rather than thumb reach.
+ */
+
+.admin {
+  --admin-max: 82rem;
+}
+
+.admin__bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding-block: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.admin__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin__nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.admin__nav-link:hover {
+  background: var(--surface-sunk);
+  color: var(--green-deep);
+}
+
+.admin-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 60rem) {
+  .admin-grid--sidebar {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+  }
+  .admin-grid--halves {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 44rem) {
+  .form-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .form-grid__full {
+    grid-column: 1 / -1;
+  }
+}
+
+/*
+ * Result entry grid.
+ *
+ * Rows are tab-ordered runner -> distance -> time so an operator can key an
+ * entire round without reaching for the mouse.
+ */
+.entry-grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.entry-grid th,
+.entry-grid td {
+  padding: 0.35rem;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: top;
+}
+
+.entry-grid input,
+.entry-grid select {
+  min-height: 40px;
+}
+
+.entry-grid td:first-child {
+  width: 3rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 0.85rem;
+}
+
+.entry-grid .time-cell {
+  width: 9rem;
+}
+
+.entry-grid .distance-cell {
+  width: 11rem;
+}
+
+.entry-grid .action-cell {
+  width: 3rem;
+}
+
+.preview-table td,
+.preview-table th {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.875rem;
+}
+
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.stat {
+  min-width: 7rem;
+}
+
+.stat__value {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stat__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+
+.token-box {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  word-break: break-all;
+  font-size: 0.875rem;
+}

@@ -1,0 +1,10 @@
+node_modules
+.next
+coverage
+playwright-report
+test-results
+package-lock.json
+prisma/migrations
+src/generated
+src/domain/scoring/age-grade/data
+public/rmpac-logo.png
