@@ -29,6 +29,7 @@
     "db:reset": "prisma migrate reset --force",
     "db:test:setup": "dotenv -e .env.test -- prisma migrate deploy",
     "seed:sample": "tsx scripts/seed-sample.ts",
+    "seed:club": "tsx scripts/seed-club-2026.ts",
     "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "gen:age-grade": "tsx scripts/generate-age-grade-tables.ts",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
