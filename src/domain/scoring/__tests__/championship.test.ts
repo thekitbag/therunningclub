@@ -105,19 +105,20 @@ describe('race scores', () => {
 });
 
 describe('eligibility', () => {
-  it('needs six qualifying results before a runner is eligible', () => {
+  it('needs seven qualifying results before a runner is eligible', () => {
     const result = run([
-      ...placings('five', 'MALE', [1, 1, 1, 1, 1]),
-      ...placings('six', 'MALE', [2, 2, 2, 2, 2, 2]),
+      ...placings('six', 'MALE', [1, 1, 1, 1, 1, 1]),
+      ...placings('seven', 'MALE', [2, 2, 2, 2, 2, 2, 2]),
     ]);
     const byId = Object.fromEntries(result.standings.MALE.map((s) => [s.runnerId, s]));
 
-    expect(byId.five?.eligible).toBe(false);
-    expect(byId.five?.bestSixTotal).toBeNull();
-    expect(byId.five?.position).toBeNull();
-    expect(byId.six?.eligible).toBe(true);
-    expect(byId.six?.bestSixTotal).toBe(12);
-    expect(byId.six?.position).toBe(1);
+    // Six races is no longer enough, however good the scores are.
+    expect(byId.six?.eligible).toBe(false);
+    expect(byId.six?.countingTotal).toBeNull();
+    expect(byId.six?.position).toBeNull();
+    expect(byId.seven?.eligible).toBe(true);
+    expect(byId.seven?.countingTotal).toBe(14);
+    expect(byId.seven?.position).toBe(1);
   });
 
   it('keeps ineligible runners visible with their progress', () => {
@@ -125,14 +126,14 @@ describe('eligibility', () => {
     const standing = result.standings.FEMALE[0];
     expect(standing).toBeDefined();
     expect(standing?.racesCompleted).toBe(4);
-    expect(standing?.racesRequired).toBe(6);
-    expect(eligibilityLabel(standing!)).toBe('Not yet eligible — 4 of 6 races');
+    expect(standing?.racesRequired).toBe(7);
+    expect(eligibilityLabel(standing!)).toBe('Not yet eligible — 4 of 7 races');
   });
 
   it('lists ineligible runners after every eligible runner', () => {
     const result = run([
-      ...placings('nearly', 'MALE', [1, 1, 1, 1, 1]),
-      ...placings('qualified', 'MALE', [9, 9, 9, 9, 9, 9]),
+      ...placings('nearly', 'MALE', [1, 1, 1, 1, 1, 1]),
+      ...placings('qualified', 'MALE', [9, 9, 9, 9, 9, 9, 9]),
     ]);
     // Even though "nearly" has far better individual scores, only a qualified
     // runner takes a position, and they sort ahead.
@@ -141,54 +142,65 @@ describe('eligibility', () => {
 });
 
 describe('championship totals', () => {
-  it('counts only the six lowest scores when more than six exist', () => {
+  it('counts only the seven lowest scores when more than seven exist', () => {
     const result = run(placings('a', 'MALE', [10, 1, 2, 9, 3, 4, 5, 8]));
     const standing = result.standings.MALE[0];
 
-    // The six lowest are 1, 2, 3, 4, 5, 8 = 23; the 9 and the 10 are dropped.
-    expect(standing?.bestSixTotal).toBe(23);
+    // The seven lowest are 1, 2, 3, 4, 5, 8, 9 = 32; only the 10 is dropped.
+    expect(standing?.countingTotal).toBe(32);
     expect(standing?.racesCompleted).toBe(8);
 
     const counting = standing?.races.filter((r) => r.counts).map((r) => r.score);
-    expect(counting?.sort((a, b) => (a as number) - (b as number))).toEqual([1, 2, 3, 4, 5, 8]);
+    expect(counting?.sort((a, b) => (a as number) - (b as number))).toEqual([1, 2, 3, 4, 5, 8, 9]);
   });
 
   it('marks nothing as counting until the runner is eligible', () => {
-    // With five races there is no best-six total, so highlighting cells would
-    // imply a total that does not exist.
-    const result = run(placings('a', 'MALE', [1, 2, 3, 4, 5]));
+    // With six races there is no total, so highlighting cells would imply a
+    // total that does not exist.
+    const result = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 6]));
     const standing = result.standings.MALE[0];
     expect(standing?.eligible).toBe(false);
-    expect(standing?.bestSixTotal).toBeNull();
+    expect(standing?.countingTotal).toBeNull();
     expect(standing?.races.some((race) => race.counts)).toBe(false);
     // The scores themselves are still shown.
-    expect(standing?.races.filter((race) => race.score !== null)).toHaveLength(5);
+    expect(standing?.races.filter((race) => race.score !== null)).toHaveLength(6);
   });
 
-  it('marks exactly six races as counting', () => {
+  it('marks exactly seven races as counting', () => {
     const result = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
-    expect(result.standings.MALE[0]?.races.filter((r) => r.counts)).toHaveLength(6);
+    expect(result.standings.MALE[0]?.races.filter((r) => r.counts)).toHaveLength(7);
+  });
+
+  it('gives a runner no drop score until they run an eighth race', () => {
+    // Seven races: every one of them counts.
+    const seven = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 6, 20]));
+    expect(seven.standings.MALE[0]?.countingTotal).toBe(41);
+    expect(seven.standings.MALE[0]?.races.filter((r) => r.counts)).toHaveLength(7);
+
+    // An eighth race lets the 20 be dropped.
+    const eight = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 6, 20, 7]));
+    expect(eight.standings.MALE[0]?.countingTotal).toBe(28);
   });
 
   it('gives the lowest total the lead', () => {
     const result = run([
-      ...placings('low', 'MALE', [1, 1, 1, 1, 1, 1]),
-      ...placings('mid', 'MALE', [3, 3, 3, 3, 3, 3]),
-      ...placings('high', 'MALE', [5, 5, 5, 5, 5, 5]),
+      ...placings('low', 'MALE', [1, 1, 1, 1, 1, 1, 1]),
+      ...placings('mid', 'MALE', [3, 3, 3, 3, 3, 3, 3]),
+      ...placings('high', 'MALE', [5, 5, 5, 5, 5, 5, 5]),
     ]);
-    expect(result.standings.MALE.map((s) => [s.runnerId, s.bestSixTotal, s.position])).toEqual([
-      ['low', 6, 1],
-      ['mid', 18, 2],
-      ['high', 30, 3],
+    expect(result.standings.MALE.map((s) => [s.runnerId, s.countingTotal, s.position])).toEqual([
+      ['low', 7, 1],
+      ['mid', 21, 2],
+      ['high', 35, 3],
     ]);
   });
 
   it('ties equal totals and skips the following position', () => {
     const result = run([
-      ...placings('a', 'MALE', [1, 1, 1, 1, 1, 1]),
-      ...placings('b', 'MALE', [2, 2, 2, 2, 2, 2]),
-      ...placings('c', 'MALE', [2, 2, 2, 2, 2, 2]),
-      ...placings('d', 'MALE', [4, 4, 4, 4, 4, 4]),
+      ...placings('a', 'MALE', [1, 1, 1, 1, 1, 1, 1]),
+      ...placings('b', 'MALE', [2, 2, 2, 2, 2, 2, 2]),
+      ...placings('c', 'MALE', [2, 2, 2, 2, 2, 2, 2]),
+      ...placings('d', 'MALE', [4, 4, 4, 4, 4, 4, 4]),
     ]);
     expect(result.standings.MALE.map((s) => s.position)).toEqual([1, 2, 2, 4]);
     expect(result.standings.MALE.map((s) => s.tied)).toEqual([false, true, true, false]);
@@ -200,7 +212,7 @@ describe('published-only filtering', () => {
     const draftRaces = races.map((race, index) =>
       index === 0 ? { ...race, published: false } : race,
     );
-    const entries = placings('a', 'MALE', [1, 2, 3, 4, 5, 6]);
+    const entries = placings('a', 'MALE', [1, 2, 3, 4, 5, 6, 7]);
 
     const publicView = scoreChampionship({
       year: 2025,
@@ -215,31 +227,31 @@ describe('published-only filtering', () => {
       publishedOnly: false,
     });
 
-    // Losing the draft race drops the runner from six results to five.
-    expect(publicView.standings.MALE[0]?.racesCompleted).toBe(5);
+    // Losing the draft race drops the runner from seven results to six.
+    expect(publicView.standings.MALE[0]?.racesCompleted).toBe(6);
     expect(publicView.standings.MALE[0]?.eligible).toBe(false);
-    expect(adminView.standings.MALE[0]?.racesCompleted).toBe(6);
+    expect(adminView.standings.MALE[0]?.racesCompleted).toBe(7);
     expect(adminView.standings.MALE[0]?.eligible).toBe(true);
   });
 });
 
 describe('recalculation after a corrected placing', () => {
   it('recomputes the total and the counting set when a placing changes', () => {
-    const before = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 9]));
-    expect(before.standings.MALE[0]?.bestSixTotal).toBe(24);
+    const before = run(placings('a', 'MALE', [1, 2, 3, 4, 5, 9, 6]));
+    expect(before.standings.MALE[0]?.countingTotal).toBe(30);
 
-    const corrected = placings('a', 'MALE', [1, 2, 3, 4, 5, 6]);
+    const corrected = placings('a', 'MALE', [1, 2, 3, 4, 5, 6, 6]);
     const after = run(corrected);
-    expect(after.standings.MALE[0]?.bestSixTotal).toBe(21);
+    expect(after.standings.MALE[0]?.countingTotal).toBe(27);
   });
 
   it('reorders the table when a correction overtakes a rival', () => {
-    const base = [...placings('rival', 'MALE', [2, 2, 2, 2, 2, 2])];
+    const base = [...placings('rival', 'MALE', [2, 2, 2, 2, 2, 2, 2])];
 
-    const before = run([...base, ...placings('a', 'MALE', [3, 3, 3, 3, 3, 3])]);
+    const before = run([...base, ...placings('a', 'MALE', [3, 3, 3, 3, 3, 3, 3])]);
     expect(before.standings.MALE.map((s) => s.runnerId)).toEqual(['rival', 'a']);
 
-    const after = run([...base, ...placings('a', 'MALE', [1, 1, 1, 1, 1, 1])]);
+    const after = run([...base, ...placings('a', 'MALE', [1, 1, 1, 1, 1, 1, 1])]);
     expect(after.standings.MALE.map((s) => s.runnerId)).toEqual(['a', 'rival']);
   });
 });

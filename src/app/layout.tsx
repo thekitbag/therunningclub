@@ -62,7 +62,9 @@ export function generateMetadata(): Metadata {
       siteName: 'Royal Manor of Portland Athletic Club',
       locale: 'en_GB',
     },
-    robots: { index: true, follow: true },
+    // The club's results are members' names and performance data, kept behind
+    // the club passcode and deliberately out of search results.
+    robots: { index: false, follow: false, nocache: true },
   };
 }
 

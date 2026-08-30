@@ -61,6 +61,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/**
+ * Clears cached pages on request from the application.
+ *
+ * The unlock page sends this whenever it loads. That covers both cases where a
+ * device should stop being able to read club results offline: someone locking a
+ * shared computer, and the club rotating the passcode so a device that used to
+ * be unlocked no longer is. Without it, a locked-out device could still read the
+ * last cached standings by going offline.
+ */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_PAGE_CACHE') {
+    event.waitUntil(caches.delete(PAGE_CACHE));
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -75,6 +90,11 @@ self.addEventListener('fetch', (event) => {
 
   // Admin and API responses bypass the worker completely.
   if (isPrivatePath(url.pathname)) return;
+
+  // The unlock page is never cached. Caching it would risk serving it in place
+  // of real content, and it is the one page that must always reflect whether
+  // this device is currently allowed in.
+  if (url.pathname === '/unlock') return;
 
   // Next.js build output is content-hashed, so it can be cached forever.
   if (url.pathname.startsWith('/_next/static/')) {

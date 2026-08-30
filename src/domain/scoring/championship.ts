@@ -11,8 +11,9 @@ import {
  *
  * The championship is a *low score wins* competition: the first RMPAC finisher
  * in a category scores 1, the second scores 2, and a runner's total is the sum
- * of their six lowest scores. That inversion is the main thing to keep in mind
- * when reading this file — "better" means smaller everywhere below.
+ * of their lowest `CHAMPIONSHIP_COUNTING_RACES` scores. That inversion is the
+ * main thing to keep in mind when reading this file — "better" means smaller
+ * everywhere below.
  */
 
 export interface ChampionshipRaceInput {
@@ -48,7 +49,7 @@ export interface ChampionshipRaceScore {
   readonly shortLabel: string;
   /** Null means the runner did not contest the race — not a zero score. */
   readonly score: number | null;
-  /** True when this score is one of the six lowest that count. */
+  /** True when this score is one of the lowest that count towards the total. */
   readonly counts: boolean;
   readonly tied: boolean;
 }
@@ -63,7 +64,7 @@ export interface ChampionshipStanding {
   readonly racesCompleted: number;
   readonly racesRequired: number;
   /** Sum of the six lowest scores. Null until the runner is eligible. */
-  readonly bestSixTotal: number | null;
+  readonly countingTotal: number | null;
   readonly races: readonly ChampionshipRaceScore[];
 }
 
@@ -145,7 +146,7 @@ export function scoreChampionship(input: ChampionshipScoringInput): Championship
         .map((pair) => pair.race.raceId),
     );
 
-    const bestSixTotal = eligible
+    const countingTotal = eligible
       ? [...scored]
           .sort(
             (a, b) =>
@@ -175,7 +176,7 @@ export function scoreChampionship(input: ChampionshipScoringInput): Championship
       eligible,
       racesCompleted,
       racesRequired: CHAMPIONSHIP_QUALIFYING_RACES,
-      bestSixTotal,
+      countingTotal,
       races: raceCells,
     };
   });
@@ -190,7 +191,7 @@ export function scoreChampionship(input: ChampionshipScoringInput): Championship
     // Lowest total leads. Equal totals stay tied.
     const ranked = rankByCompetition(
       eligible,
-      (a, b) => (a.bestSixTotal as number) - (b.bestSixTotal as number),
+      (a, b) => (a.countingTotal as number) - (b.countingTotal as number),
     );
 
     standings[category] = [

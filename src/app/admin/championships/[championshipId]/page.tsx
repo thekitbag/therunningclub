@@ -6,6 +6,7 @@ import { formatShortDate } from '@/lib/dates';
 import { computeChampionshipScoring, previewChampionshipImpact } from '@/services/championships';
 import { eligibilityLabel } from '@/domain/scoring';
 import { ScrollableTable } from '@/components/ScrollableTable';
+import { CHAMPIONSHIP_COUNTING_RACES } from '@/domain/scoring/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -206,7 +207,7 @@ export default async function ChampionshipDetailPage({
                       Races
                     </th>
                     <th scope="col" className="num">
-                      Best 6
+                      Best {CHAMPIONSHIP_COUNTING_RACES}
                     </th>
                     <th scope="col">Status</th>
                   </tr>
@@ -218,7 +219,7 @@ export default async function ChampionshipDetailPage({
                       <th scope="row">{names.get(standing.runnerId) ?? 'Unknown runner'}</th>
                       <td className="num">{standing.racesCompleted}</td>
                       <td className="num" style={{ fontWeight: 700 }}>
-                        {standing.bestSixTotal ?? '—'}
+                        {standing.countingTotal ?? '—'}
                       </td>
                       <td>{eligibilityLabel(standing)}</td>
                     </tr>

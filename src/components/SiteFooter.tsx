@@ -9,8 +9,9 @@ export function SiteFooter() {
           volunteers.
         </p>
         <p>
-          Runner names and competition results on this site are public. Dates of birth are held
-          privately and used only to calculate age-grade percentages — they are never published.{' '}
+          This site is for club members and is kept out of search engines. Runner names and results
+          are visible to anyone with the club passcode. Dates of birth are held privately and used
+          only to calculate age-grade percentages — they are never shown.{' '}
           <Link href="/privacy">Read the privacy notice</Link>.
         </p>
         <p>

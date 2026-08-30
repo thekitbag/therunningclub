@@ -26,6 +26,7 @@ const baseSchema = z.object({
       'SESSION_SECRET must be at least 32 characters. Generate one with: openssl rand -base64 48',
     ),
   JUSTGIVING_URL: z.string().url('JUSTGIVING_URL must be an absolute URL.'),
+  SITE_PASSCODE: z.string().optional(),
   CLUB_WELCOME_COPY: z.string().optional(),
   FUNDRAISING_COPY: z.string().optional(),
   ALLOW_SAMPLE_SEED: z
@@ -42,6 +43,9 @@ export type AppConfig = Readonly<{
   appOrigin: string;
   sessionSecret: string;
   justGivingUrl: string;
+  /** Club passcode gating the public site. Empty string means no gate. */
+  sitePasscode: string;
+  siteIsGated: boolean;
   welcomeCopy: string;
   fundraisingCopy: string;
   allowSampleSeed: boolean;
@@ -75,6 +79,7 @@ const BUILD_PLACEHOLDERS = {
   APP_ORIGIN: 'https://build.invalid',
   SESSION_SECRET: 'build-time-placeholder-secret-not-used-at-runtime',
   JUSTGIVING_URL: 'https://www.justgiving.com/build-placeholder',
+  SITE_PASSCODE: 'build-time-placeholder-passcode',
 } as const;
 
 export class ConfigurationError extends Error {
@@ -134,6 +139,19 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
     if (value.ALLOW_SAMPLE_SEED) {
       problems.push('ALLOW_SAMPLE_SEED must not be enabled in production.');
     }
+    // The club's explicit requirement is that members' names and times are not
+    // on the open internet. Failing to start is the safe way to get that wrong:
+    // a deployment that boots without a passcode would publish the very data
+    // the passcode exists to protect.
+    const passcode = value.SITE_PASSCODE?.trim() ?? '';
+    if (!passcode) {
+      problems.push(
+        'SITE_PASSCODE is required in production. The public site is gated behind it; ' +
+          'without one the site would be readable by anyone.',
+      );
+    } else if (passcode.length < 6) {
+      problems.push('SITE_PASSCODE must be at least 6 characters.');
+    }
   }
 
   if (problems.length > 0) {
@@ -147,6 +165,10 @@ export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
     appOrigin: value.APP_ORIGIN,
     sessionSecret: value.SESSION_SECRET,
     justGivingUrl: value.JUSTGIVING_URL,
+    sitePasscode: value.SITE_PASSCODE?.trim() ?? '',
+    // Outside production the gate is opt-in, so local development and the test
+    // suites are not obstructed by it unless they are exercising it.
+    siteIsGated: (value.SITE_PASSCODE?.trim() ?? '') !== '',
     welcomeCopy: value.CLUB_WELCOME_COPY?.trim() || DEFAULT_WELCOME_COPY,
     fundraisingCopy: value.FUNDRAISING_COPY?.trim() || DEFAULT_FUNDRAISING_COPY,
     allowSampleSeed: value.ALLOW_SAMPLE_SEED,

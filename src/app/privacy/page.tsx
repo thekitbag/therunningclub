@@ -19,11 +19,22 @@ export default function PrivacyPage() {
 
       <div className="prose stack">
         <section>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>What is public</h2>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Who can see results</h2>
           <p>
-            Runner names, finishing times, positions, points and age-grade percentages are published
-            on this site so members can follow the club&rsquo;s competitions. Anyone can view them
-            without an account.
+            Runner names, finishing times, positions, points and age-grade percentages are shown on
+            this site so members can follow the club&rsquo;s competitions.
+          </p>
+          <p>
+            The whole site sits behind a single club passcode, and search engines are asked not to
+            index it. That means results are visible to club members and to anyone they share the
+            passcode with — but not to someone searching for a runner&rsquo;s name on the open
+            internet.
+          </p>
+          <p>
+            Be aware of what that does and does not do: it keeps the club&rsquo;s results out of
+            public search results, but it is a shared passcode, so it cannot control which
+            individual members see what. If you would rather your results were not shown at all,
+            speak to a committee member.
           </p>
         </section>
 

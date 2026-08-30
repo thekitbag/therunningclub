@@ -20,8 +20,14 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * Identifier for the scoring rules themselves, stored next to every derived
  * value. A rules change bumps this and becomes a deliberate migration; a season
  * never mixes versions.
+ *
+ * V2 raised the club championship from six qualifying races counting six scores
+ * to seven counting seven. The club chose to apply that to past years as well,
+ * so historical standings were recalculated under V2 rather than left under the
+ * rule they were originally run to. The version stored on each record is what
+ * makes that decision auditable afterwards.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V1';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V2';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;
@@ -29,11 +35,22 @@ export const ROUNDS_PER_SEASON = 6;
 /** How many round totals count towards the season leaderboard. */
 export const COUNTING_ROUNDS = 4;
 
-/** Qualifying races needed before a runner enters the championship standings. */
-export const CHAMPIONSHIP_QUALIFYING_RACES = 6;
+/**
+ * Qualifying races needed before a runner enters the championship standings.
+ *
+ * Raised from six to seven for the 2026 season, and applied to every year — see
+ * the note on `SCORING_RULES_VERSION`.
+ */
+export const CHAMPIONSHIP_QUALIFYING_RACES = 7;
 
-/** How many race scores count towards the championship total. */
-export const CHAMPIONSHIP_COUNTING_RACES = 6;
+/**
+ * How many race scores count towards the championship total.
+ *
+ * Equal to the qualifying threshold, so a runner has no drop score until they
+ * run an eighth race. Both numbers are rendered into the public explanations
+ * rather than written out as words, so changing them here changes the copy too.
+ */
+export const CHAMPIONSHIP_COUNTING_RACES = 7;
 
 /** Lap distances in metres, per season type. */
 export const SEASON_DISTANCES: Readonly<

@@ -359,7 +359,7 @@ export interface PublicChampionshipRow {
   readonly eligible: boolean;
   readonly racesCompleted: number;
   readonly racesRequired: number;
-  readonly bestSixTotal: number | null;
+  readonly countingTotal: number | null;
   readonly races: readonly {
     raceId: string;
     shortLabel: string;
@@ -425,7 +425,7 @@ export async function getPublicChampionshipView(
       eligible: standing.eligible,
       racesCompleted: standing.racesCompleted,
       racesRequired: standing.racesRequired,
-      bestSixTotal: standing.bestSixTotal,
+      countingTotal: standing.countingTotal,
       races: standing.races.map((race) => ({
         raceId: race.raceId,
         shortLabel: race.shortLabel,
@@ -677,11 +677,11 @@ function championshipLeaderFrom(
   standings: readonly PublicChampionshipRow[] | undefined,
 ): HomeLeader | null {
   const leader = standings?.find((standing) => standing.position === 1 && standing.eligible);
-  if (!leader || leader.bestSixTotal === null) return null;
+  if (!leader || leader.countingTotal === null) return null;
   return {
     runner: leader.runner,
-    value: leader.bestSixTotal,
-    detail: `${leader.bestSixTotal} points from ${leader.racesCompleted} races`,
+    value: leader.countingTotal,
+    detail: `${leader.countingTotal} points from ${leader.racesCompleted} races`,
   };
 }
 
