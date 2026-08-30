@@ -1,5 +1,10 @@
 # Deploying RMPAC on Render
 
+> **Deploying for the first time?** Follow
+> [`deployment-playbook.md`](deployment-playbook.md), which walks the whole
+> thing through in order with a check at each step. This document is the
+> reference for the pieces.
+
 The application is one Node web service plus one managed PostgreSQL database.
 [`render.yaml`](../render.yaml) declares both.
 

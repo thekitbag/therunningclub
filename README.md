@@ -142,7 +142,9 @@ its finishing points, all ten improvements, and the best-four season totals.
 
 ## Deployment
 
-See [`docs/deployment.md`](docs/deployment.md) and
+Start with [`docs/deployment-playbook.md`](docs/deployment-playbook.md) — a
+step-by-step runbook for getting onto rmpac.co.uk. See also
+[`docs/deployment.md`](docs/deployment.md) and
 [`docs/release-checklist.md`](docs/release-checklist.md). The blueprint in
 [`render.yaml`](render.yaml) declares one Node web service and one managed
 PostgreSQL database.
