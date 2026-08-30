@@ -615,6 +615,19 @@ main {
  * is a WCAG requirement people usually miss on scrolling regions.
  */
 .table-scroll {
+  /*
+   * `position: relative` is load-bearing, not cosmetic.
+   *
+   * These tables contain `.visually-hidden` spans ("did not run", "counts"),
+   * which are `position: absolute`. Without a positioned ancestor here their
+   * containing block resolves to something *outside* this scroll container, so
+   * they escape its clipping and stretch the whole document's scroll width —
+   * the page then scrolls sideways even though the table itself is clipped
+   * correctly. It surfaces only once a table is wide enough to push those spans
+   * past the viewport, which is why adding a seventh championship column
+   * revealed it.
+   */
+  position: relative;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border);
