@@ -105,6 +105,18 @@ Confirm these on the `rmpac` service under **Environment**:
 | `DATABASE_URL`      | _(from `rmpac-db`)_                              | automatic |
 | `SESSION_SECRET`    | _(generated)_                                    | automatic |
 
+### Set the club passcode
+
+`SITE_PASSCODE` gates the whole public site, so members' names and times are not
+on the open internet. Choose something a member can repeat over the phone —
+length matters more than symbols.
+
+**The service will not start without it.** That is deliberate: a deployment that
+booted without a passcode would publish exactly the data it protects.
+
+Rotating it later signs every device out, so tell members first. See
+[`privacy-gate.md`](privacy-gate.md).
+
 Optionally set `CLUB_WELCOME_COPY` and `FUNDRAISING_COPY` to override the
 built-in home-page text. Plain text, no markup.
 
@@ -157,7 +169,8 @@ Expect:
 that `DATABASE_URL` is bound to `rmpac-db` and that both are in the same region.
 
 The site is live at this point, on Render's own `.onrender.com` hostname, with
-an empty database. Every section will show its empty state. That is correct.
+an empty database. Visiting it will land you on the club passcode screen; enter
+the passcode and every section will show its empty state. That is correct.
 
 ---
 
@@ -358,6 +371,11 @@ this is an apex/`www` mismatch. Make them agree and redeploy.
 **`"database":"unavailable"` from the health check.**
 `DATABASE_URL` is not bound to `rmpac-db`, or the two services are in different
 regions.
+
+**Everyone is locked out after a deploy.**
+`SITE_PASSCODE` changed, or was not carried over. Every access cookie is signed
+with the passcode itself, so changing it signs all devices out by design. Set it
+back, or tell members the new one.
 
 **Rate limited out of sign-in.**
 Sign-in allows 8 attempts per email address per 15 minutes. Wait it out, or

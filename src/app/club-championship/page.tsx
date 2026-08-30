@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { EmptyState } from '@/components/EmptyState';
 import { listPublishedChampionshipYears } from '@/services/public-queries';
+import { CHAMPIONSHIP_COUNTING_RACES, CHAMPIONSHIP_QUALIFYING_RACES } from '@/domain/scoring/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,8 +19,9 @@ export default async function ChampionshipIndexPage() {
       </div>
       <EmptyState title="No championship published yet">
         <p>
-          The club championship runs over a calendar year. Members need six qualifying races before
-          they enter the standings, and the six lowest scores count towards the total.
+          The club championship runs over a calendar year. Members need{' '}
+          {CHAMPIONSHIP_QUALIFYING_RACES} qualifying races before they enter the standings, and the{' '}
+          {CHAMPIONSHIP_COUNTING_RACES} lowest scores count towards the total.
         </p>
       </EmptyState>
     </div>

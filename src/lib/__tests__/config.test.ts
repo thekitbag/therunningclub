@@ -20,6 +20,7 @@ const validProdEnv = {
   APP_ORIGIN: 'https://rmpac.example',
   SESSION_SECRET: 'a-real-production-secret-of-more-than-32-chars',
   JUSTGIVING_URL: 'https://www.justgiving.com/page/rmpac-london-marathon',
+  SITE_PASSCODE: 'a-real-club-passcode',
 } as NodeJS.ProcessEnv;
 
 describe('parseConfig', () => {
@@ -90,6 +91,25 @@ describe('parseConfig', () => {
       );
     });
 
+    it('refuses to start without a club passcode', () => {
+      // The club's requirement is that members' names and times are not on the
+      // open internet. Booting without a passcode would publish exactly that,
+      // so failing to start is the safe way to get it wrong.
+      const { SITE_PASSCODE: _omitted, ...withoutPasscode } = validProdEnv;
+      expect(() => parseConfig(withoutPasscode as NodeJS.ProcessEnv)).toThrow(
+        /SITE_PASSCODE is required in production/,
+      );
+      expect(() => parseConfig({ ...validProdEnv, SITE_PASSCODE: '   ' })).toThrow(
+        /SITE_PASSCODE is required in production/,
+      );
+    });
+
+    it('refuses a trivially short passcode', () => {
+      expect(() => parseConfig({ ...validProdEnv, SITE_PASSCODE: 'abc' })).toThrow(
+        /at least 6 characters/,
+      );
+    });
+
     it('refuses to enable sample seeding', () => {
       expect(() => parseConfig({ ...validProdEnv, ALLOW_SAMPLE_SEED: 'true' })).toThrow(
         /must not be enabled in production/,
@@ -98,6 +118,29 @@ describe('parseConfig', () => {
 
     it('allows all of these in development', () => {
       expect(() => parseConfig({ ...validDevEnv, ALLOW_SAMPLE_SEED: 'true' })).not.toThrow();
+    });
+  });
+
+  describe('the site gate', () => {
+    it('is off when no passcode is configured, so development is not obstructed', () => {
+      const config = parseConfig(validDevEnv);
+      expect(config.siteIsGated).toBe(false);
+      expect(config.sitePasscode).toBe('');
+    });
+
+    it('is on as soon as a passcode is configured', () => {
+      const config = parseConfig({ ...validDevEnv, SITE_PASSCODE: 'portland2026' });
+      expect(config.siteIsGated).toBe(true);
+      expect(config.sitePasscode).toBe('portland2026');
+    });
+
+    it('trims the configured passcode, so a stray newline is not part of it', () => {
+      const config = parseConfig({ ...validDevEnv, SITE_PASSCODE: '  portland2026\n' });
+      expect(config.sitePasscode).toBe('portland2026');
+    });
+
+    it('treats a whitespace-only passcode as no gate at all', () => {
+      expect(parseConfig({ ...validDevEnv, SITE_PASSCODE: '   ' }).siteIsGated).toBe(false);
     });
   });
 
@@ -119,6 +162,7 @@ describe('loopback origins in production mode', () => {
     DATABASE_URL: 'postgresql://localhost:5432/rmpac_e2e',
     SESSION_SECRET: 'an-e2e-secret-that-is-well-over-32-characters',
     JUSTGIVING_URL: 'https://www.justgiving.com/page/rmpac-london-marathon',
+    SITE_PASSCODE: 'an-e2e-club-passcode',
   } as NodeJS.ProcessEnv;
 
   it('allows http on loopback so the real production build can be smoke-tested', () => {

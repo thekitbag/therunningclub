@@ -10,6 +10,17 @@ import type { NextConfig } from 'next';
  */
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
+  /*
+   * The club's results are members' names and performance data, kept behind the
+   * club passcode and deliberately out of search results.
+   *
+   * `robots.txt` asks a crawler not to *fetch* a page; this tells it not to
+   * *index* what it may already have fetched, which is the one that matters for
+   * anything crawled before the gate existed. It is set here rather than in
+   * middleware because middleware response headers do not reach the client in
+   * this version of Next.
+   */
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   {

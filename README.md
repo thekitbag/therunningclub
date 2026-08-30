@@ -42,8 +42,9 @@ functions in `src/domain/scoring` and are specified in
   separate recalculation.
 
 **Club championship** — low score wins. The first club finisher in a category
-scores 1, the second 2. Six qualifying races make a runner eligible, and their
-six lowest scores are summed. Ties stay tied; there is no tie-break in v1.
+scores 1, the second 2. Seven qualifying races make a runner eligible, and their
+seven lowest scores are summed, so there is no drop score until an eighth race.
+Ties stay tied; there is no tie-break in v1.
 
 Age grading uses the WMA/USATF 2015 road standards, vendored and versioned —
 see [`docs/age-grading.md`](docs/age-grading.md).
@@ -106,9 +107,9 @@ npm run bootstrap:admin
 ## Testing
 
 ```bash
-npm test                  # 125 unit tests: scoring, age grading, config, security
+npm test                  # 145 unit tests: scoring, age grading, config, security
 npm run test:integration  # 100 integration tests against a real database
-npm run test:e2e          #  88 browser tests on desktop and phone viewports
+npm run test:e2e          # 104 browser tests on desktop and phone viewports
 npm run verify            # everything except the browser suite
 ```
 
@@ -127,6 +128,15 @@ its finishing points, all ten improvements, and the best-four season totals.
 
 ## Security and privacy
 
+**The whole public site is behind a single shared club passcode.** Members'
+names and times are not for the open internet. See
+[`docs/privacy-gate.md`](docs/privacy-gate.md) for what that protects and what
+it deliberately does not.
+
+- `SITE_PASSCODE` gates every page except the unlock screen, the health check
+  and administration. Production refuses to start without one.
+- `robots.txt` and an `X-Robots-Tag: noindex` header on every response keep the
+  site out of search results.
 - Individual administrator accounts. No shared password, no public sign-up.
 - Passwords hashed with scrypt (N=65536, r=8, ~64 MiB per hash).
 - Sessions are opaque random tokens; only their SHA-256 is stored.

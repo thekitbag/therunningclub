@@ -468,10 +468,13 @@ describe('scoring versions', () => {
     ]);
 
     const stored = await prisma.ttResult.findFirstOrThrow({ where: { runnerId: runner.id } });
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V1');
+    // Written out in full rather than compared against the constant: a version
+    // bump should require a deliberate edit here, which is the point of
+    // stamping it in the first place.
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V2');
     expect(stored.ageGradeVersion).toBe('WMA_ROAD_2015_RMPAC_V1');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V1');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V2');
   });
 });

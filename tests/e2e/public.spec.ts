@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { resetAndSeed } from './fixtures';
+import { CHAMPIONSHIP_COUNTING_RACES } from '@/domain/scoring/types';
 
 /**
  * Public journeys.
@@ -101,7 +102,11 @@ test('championship table marks eligibility in words, not only colour', async ({ 
   });
   await expect(table).toBeVisible();
   await expect(table.getByText(/Eligible/).first()).toBeVisible();
-  await expect(table.getByRole('columnheader', { name: 'Best 6' })).toBeVisible();
+  // Derived from the rule rather than hardcoded, so a future change to the
+  // number of counting races updates the assertion with the application.
+  await expect(
+    table.getByRole('columnheader', { name: `Best ${CHAMPIONSHIP_COUNTING_RACES}` }),
+  ).toBeVisible();
 });
 
 test('races list puts upcoming before past and never exposes a draft', async ({ page }) => {

@@ -262,14 +262,14 @@ export async function previewChampionshipImpact(
       const priorStanding = before.standings[category].find(
         (s) => s.runnerId === standing.runnerId,
       );
-      const totalChanged = (priorStanding?.bestSixTotal ?? null) !== standing.bestSixTotal;
+      const totalChanged = (priorStanding?.countingTotal ?? null) !== standing.countingTotal;
       const eligibilityChanged = (priorStanding?.eligible ?? false) !== standing.eligible;
       if (totalChanged || eligibilityChanged) {
         changedRunners.push({
           runnerName: names.get(standing.runnerId) ?? 'Unknown runner',
           category,
-          fromTotal: priorStanding?.bestSixTotal ?? null,
-          toTotal: standing.bestSixTotal,
+          fromTotal: priorStanding?.countingTotal ?? null,
+          toTotal: standing.countingTotal,
           fromEligible: priorStanding?.eligible ?? false,
           toEligible: standing.eligible,
         });

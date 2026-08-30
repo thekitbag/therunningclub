@@ -6,6 +6,7 @@ import { LastUpdated } from '@/components/LastUpdated';
 import { getConfig } from '@/lib/config';
 import { formatLongDate } from '@/lib/dates';
 import { getHomeView, type HomeLeader, type PublicRace } from '@/services/public-queries';
+import { CHAMPIONSHIP_COUNTING_RACES, CHAMPIONSHIP_QUALIFYING_RACES } from '@/domain/scoring/types';
 
 /**
  * Home: an at-a-glance answer to the three questions members actually open the
@@ -120,8 +121,9 @@ export default async function HomePage() {
             <div className="notice notice--info">
               <p className="notice__title">Early in the {view.championshipYear} championship</p>
               <p>
-                Nobody has completed six qualifying races yet, so there are no standings to show.
-                Everyone&rsquo;s progress towards the six they need is on the{' '}
+                Nobody has completed {CHAMPIONSHIP_QUALIFYING_RACES} qualifying races yet, so there
+                are no standings to show. Everyone&rsquo;s progress towards the{' '}
+                {CHAMPIONSHIP_QUALIFYING_RACES} they need is on the{' '}
                 <Link href="/club-championship">championship page</Link>.
               </p>
             </div>
@@ -130,14 +132,14 @@ export default async function HomePage() {
               <LeaderCard
                 heading="Leading man"
                 leader={view.championshipLeaders.MALE}
-                unit="best-six total (lowest wins)"
+                unit={`best-${CHAMPIONSHIP_COUNTING_RACES} total (lowest wins)`}
                 href="/club-championship"
                 tone="purple"
               />
               <LeaderCard
                 heading="Leading woman"
                 leader={view.championshipLeaders.FEMALE}
-                unit="best-six total (lowest wins)"
+                unit={`best-${CHAMPIONSHIP_COUNTING_RACES} total (lowest wins)`}
                 href="/club-championship"
                 tone="purple"
               />

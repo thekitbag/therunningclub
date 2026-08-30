@@ -1,3 +1,5 @@
+import { CHAMPIONSHIP_COUNTING_RACES, CHAMPIONSHIP_QUALIFYING_RACES } from '@/domain/scoring/types';
+
 /**
  * Plain-language scoring explanations.
  *
@@ -69,12 +71,14 @@ export function ChampionshipExplainer() {
             not the rest of the race field.
           </li>
           <li>
-            <strong>Getting eligible.</strong> You need six qualifying races before you appear in
-            the standings. Until then you are listed as not yet eligible, with your progress shown.
+            <strong>Getting eligible.</strong> You need {CHAMPIONSHIP_QUALIFYING_RACES} qualifying
+            races before you appear in the standings. Until then you are listed as not yet eligible,
+            with your progress shown.
           </li>
           <li>
-            <strong>Your total.</strong> Once you have six or more races, your six lowest scores are
-            added together. Extra races let you drop your weaker results.
+            <strong>Your total.</strong> Once you have {CHAMPIONSHIP_QUALIFYING_RACES} or more
+            races, your {CHAMPIONSHIP_COUNTING_RACES} lowest scores are added together. Running more
+            than {CHAMPIONSHIP_COUNTING_RACES} lets you drop your weaker results.
           </li>
           <li>
             <strong>Winning.</strong> The lowest total leads. Equal totals stay tied.

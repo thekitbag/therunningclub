@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { LastUpdated } from '@/components/LastUpdated';
 import { ChampionshipExplainer } from '@/components/ScoringExplainer';
 import { formatShortDate } from '@/lib/dates';
+import { CHAMPIONSHIP_COUNTING_RACES, CHAMPIONSHIP_QUALIFYING_RACES } from '@/domain/scoring/types';
 import {
   getPublicChampionshipView,
   listPublishedChampionshipYears,
@@ -45,8 +46,9 @@ export default async function ChampionshipYearPage({
           {view.name}
         </h1>
         <p className="muted">
-          {view.races.length} qualifying race{view.races.length === 1 ? '' : 's'} · six needed to
-          qualify · lowest six scores count
+          {view.races.length} qualifying race{view.races.length === 1 ? '' : 's'} ·{' '}
+          {CHAMPIONSHIP_QUALIFYING_RACES} needed to qualify · lowest {CHAMPIONSHIP_COUNTING_RACES}{' '}
+          scores count
         </p>
         <LastUpdated at={view.lastUpdatedAt} />
       </header>
@@ -82,8 +84,8 @@ export default async function ChampionshipYearPage({
             <div className="notice notice--info">
               <p className="notice__title">Early in the season</p>
               <p>
-                Nobody has completed six qualifying races yet, so there are no championship
-                positions to award. Everyone&rsquo;s progress is shown below.
+                Nobody has completed {CHAMPIONSHIP_QUALIFYING_RACES} qualifying races yet, so there
+                are no championship positions to award. Everyone&rsquo;s progress is shown below.
               </p>
             </div>
           ) : null}

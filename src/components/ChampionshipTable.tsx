@@ -1,5 +1,6 @@
 import { Bib } from '@/components/Bib';
 import type { PublicChampionshipRow } from '@/services/public-queries';
+import { CHAMPIONSHIP_COUNTING_RACES } from '@/domain/scoring/types';
 
 /**
  * Championship standings.
@@ -34,9 +35,10 @@ export function ChampionshipTable({
     >
       <table>
         <caption>
-          {caption}. Lowest total wins. A shaded, bulleted score is one of the six that count. An em
-          dash means the runner did not contest that race. Race column headings are abbreviations —
-          the full race names are listed under the table.
+          {caption}. Lowest total wins. A shaded, bulleted score is one of the{' '}
+          {CHAMPIONSHIP_COUNTING_RACES} that count. An em dash means the runner did not contest that
+          race. Race column headings are abbreviations — the full race names are listed under the
+          table.
         </caption>
         <thead>
           <tr>
@@ -48,7 +50,7 @@ export function ChampionshipTable({
               </th>
             ))}
             <th scope="col" className="num nowrap">
-              Best 6
+              Best {CHAMPIONSHIP_COUNTING_RACES}
             </th>
             <th scope="col" className="nowrap">
               Status
@@ -88,7 +90,7 @@ export function ChampionshipTable({
                 </td>
               ))}
               <td className="num" style={{ fontWeight: 800 }}>
-                {row.bestSixTotal ?? (
+                {row.countingTotal ?? (
                   <>
                     <span aria-hidden="true" className="absent">
                       —

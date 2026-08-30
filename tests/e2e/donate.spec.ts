@@ -87,6 +87,9 @@ test('the page never scrolls horizontally at 320px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   for (const path of ['/', '/time-trial/winter-2025-26', '/club-championship/2025', '/races']) {
     await page.goto(path);
+    // Measure only once the page has settled: a mid-stream measurement made
+    // this a flaky test rather than a clean pass or fail.
+    await page.waitForLoadState('networkidle');
     const overflows = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
     );

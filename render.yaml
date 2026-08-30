@@ -73,6 +73,14 @@ services:
       - key: LOG_LEVEL
         value: info
 
+      # The club passcode gating the whole public site. Set this in the
+      # dashboard; the service refuses to start without it, which is deliberate
+      # — booting without one would publish members' names and times.
+      #
+      # Rotating it signs every device out.
+      - key: SITE_PASSCODE
+        sync: false
+
       # Must never be enabled in production; the configuration check enforces
       # this, and it is declared here so the intent is explicit.
       - key: ALLOW_SAMPLE_SEED

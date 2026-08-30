@@ -222,8 +222,8 @@ describe('placings', () => {
 });
 
 describe('championship standings end to end', () => {
-  /** Six qualifying races with one runner placing in every one of them. */
-  async function sixRaceChampionship() {
+  /** Seven qualifying races with one runner placing in every one of them. */
+  async function sevenRaceChampionship() {
     await setUp();
     const runner = await createRunnerRecord({
       givenName: 'Steady',
@@ -232,7 +232,7 @@ describe('championship standings end to end', () => {
       category: 'MALE',
     });
 
-    const positions = [1, 2, 3, 4, 5, 9];
+    const positions = [1, 2, 3, 4, 5, 6, 9];
     for (const [index, position] of positions.entries()) {
       const race = await createRace(
         raceInput({
@@ -250,39 +250,39 @@ describe('championship standings end to end', () => {
     return { runner, championship };
   }
 
-  it('makes a runner eligible on their sixth race and totals the six lowest', async () => {
-    const { championship } = await sixRaceChampionship();
+  it('makes a runner eligible on their seventh race and totals the seven lowest', async () => {
+    const { championship } = await sevenRaceChampionship();
 
     const view = await getPublicChampionshipView(championship.year);
     const standing = view?.standings.MALE[0];
 
     expect(standing?.eligible).toBe(true);
-    expect(standing?.racesCompleted).toBe(6);
-    // 1 + 2 + 3 + 4 + 5 + 9 — every race counts because there are exactly six.
-    expect(standing?.bestSixTotal).toBe(24);
+    expect(standing?.racesCompleted).toBe(7);
+    // 1 + 2 + 3 + 4 + 5 + 6 + 9 — every race counts, because there are exactly seven.
+    expect(standing?.countingTotal).toBe(30);
     expect(standing?.position).toBe(1);
   });
 
-  it('drops the worst score once a seventh race is added', async () => {
-    const { runner, championship } = await sixRaceChampionship();
+  it('drops the worst score once an eighth race is added', async () => {
+    const { runner, championship } = await sevenRaceChampionship();
 
-    const seventh = await createRace(
-      raceInput({ name: 'Race 7', shortLabel: 'R7', date: '2025-07-15' }),
+    const eighth = await createRace(
+      raceInput({ name: 'Race 8', shortLabel: 'R8', date: '2025-08-15' }),
     );
-    await setRaceState(seventh.id, 'PUBLISHED');
-    await saveRaceResults(seventh.id, [{ runnerId: runner.id, categoryPosition: 2 }]);
+    await setRaceState(eighth.id, 'PUBLISHED');
+    await saveRaceResults(eighth.id, [{ runnerId: runner.id, categoryPosition: 2 }]);
 
     const view = await getPublicChampionshipView(championship.year);
     const standing = view?.standings.MALE[0];
 
-    expect(standing?.racesCompleted).toBe(7);
-    // The 9 is dropped in favour of the new 2: 1 + 2 + 2 + 3 + 4 + 5.
-    expect(standing?.bestSixTotal).toBe(17);
-    expect(standing?.races.filter((race) => race.counts)).toHaveLength(6);
+    expect(standing?.racesCompleted).toBe(8);
+    // The 9 is dropped in favour of the new 2: 1 + 2 + 2 + 3 + 4 + 5 + 6.
+    expect(standing?.countingTotal).toBe(23);
+    expect(standing?.races.filter((race) => race.counts)).toHaveLength(7);
   });
 
   it('correcting a placing recalculates the total', async () => {
-    const { championship } = await sixRaceChampionship();
+    const { championship } = await sevenRaceChampionship();
 
     const races = await prisma.race.findMany({ orderBy: { date: 'asc' } });
     const lastRace = races[races.length - 1]!;
@@ -293,8 +293,8 @@ describe('championship standings end to end', () => {
     await saveRaceResults(lastRace.id, [{ runnerId: existing.runnerId, categoryPosition: 1 }]);
 
     const view = await getPublicChampionshipView(championship.year);
-    // The 9 became a 1: 24 - 9 + 1.
-    expect(view?.standings.MALE[0]?.bestSixTotal).toBe(16);
+    // The 9 became a 1: 30 - 9 + 1.
+    expect(view?.standings.MALE[0]?.countingTotal).toBe(22);
   });
 });
 
@@ -308,8 +308,8 @@ describe('championship impact preview', () => {
       category: 'MALE',
     });
 
-    // Five published races, then a sixth left as a draft.
-    for (let index = 0; index < 5; index += 1) {
+    // Six published races, then a seventh left as a draft.
+    for (let index = 0; index < 6; index += 1) {
       const race = await createRace(
         raceInput({ name: `Pub ${index}`, shortLabel: `P${index}`, date: `2025-0${index + 1}-10` }),
       );
@@ -317,7 +317,7 @@ describe('championship impact preview', () => {
       await saveRaceResults(race.id, [{ runnerId: runner.id, categoryPosition: 2 }]);
     }
     const draftRace = await createRace(
-      raceInput({ name: 'Draft', shortLabel: 'DR', date: '2025-06-10' }),
+      raceInput({ name: 'Draft', shortLabel: 'DR', date: '2025-07-10' }),
     );
     await saveRaceResults(draftRace.id, [{ runnerId: runner.id, categoryPosition: 2 }]);
 
@@ -327,9 +327,9 @@ describe('championship impact preview', () => {
     const change = impact.changedRunners[0];
     expect(change?.runnerName).toBe('Preview Runner');
     expect(change?.fromEligible).toBe(false);
-    // Publishing the sixth race is what tips them over the eligibility line.
+    // Publishing the seventh race is what tips them over the eligibility line.
     expect(change?.toEligible).toBe(true);
-    expect(change?.toTotal).toBe(12);
+    expect(change?.toTotal).toBe(14);
 
     // Draft-inclusive scoring differs from the published picture.
     const publicView = await computeChampionshipScoring(championship.id, { publishedOnly: true });

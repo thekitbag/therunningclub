@@ -169,6 +169,9 @@ async function main(): Promise<void> {
       },
     });
 
+    // Seven qualifiers, because seven are needed to be eligible. The last man
+    // sits out the final one, so the published table has a genuine "did not
+    // run" cell and one runner short of eligibility.
     const qualifiers = [
       { label: 'PC10', name: 'Portland Coastal 10', date: '2025-03-16' },
       { label: 'WB10K', name: 'Weymouth Bay 10K', date: '2025-04-20' },
@@ -176,6 +179,7 @@ async function main(): Promise<void> {
       { label: 'YHALF', name: 'Yeovil Half Marathon', date: '2025-06-15' },
       { label: 'PTPLOD', name: 'Purbeck Plod', date: '2025-07-13' },
       { label: 'BSQ', name: 'Beaminster Steeplechase', date: '2025-08-17' },
+      { label: 'L10', name: 'Lulworth 10', date: '2025-09-21' },
     ];
 
     for (const [raceIndex, qualifier] of qualifiers.entries()) {
