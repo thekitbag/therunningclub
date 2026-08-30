@@ -1,0 +1,94 @@
+# Render blueprint for the RMPAC application.
+#
+# One Node web service and one managed PostgreSQL database, in the same region
+# so the application talks to the database over Render's private network rather
+# than the public internet.
+#
+# Secrets are never committed. Values marked `sync: false` must be set once in
+# the Render dashboard; the database URL is wired automatically from the managed
+# instance below.
+#
+# Apply with:  render blueprint launch      (or via the Render dashboard)
+
+databases:
+  - name: rmpac-db
+    databaseName: rmpac
+    user: rmpac
+    region: frankfurt
+    plan: basic-256mb
+    postgresMajorVersion: '16'
+    # Restrict direct access to maintainers; the web service uses the internal
+    # connection string and does not need a public ingress rule.
+    ipAllowList: []
+
+services:
+  - type: web
+    name: rmpac
+    runtime: node
+    region: frankfurt
+    plan: starter
+    branch: main
+    autoDeployTrigger: commit
+
+    # `npm ci` installs exactly what the committed lockfile pins.
+    buildCommand: npm ci && npm run build
+
+    # Migrations run after the build and before the new instance takes traffic,
+    # so a deploy either has its schema in place or fails before serving.
+    preDeployCommand: npx prisma migrate deploy
+
+    startCommand: npm run start
+
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+
+      - key: NODE_ENV
+        value: production
+
+      # Wired automatically from the managed database above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rmpac-db
+          property: connectionString
+
+      # The club's custom domain. Add it under the service's Settings ->
+      # Custom Domains as well; this value is what the application uses for
+      # same-origin checks, canonical URLs and the web app manifest.
+      - key: APP_ORIGIN
+        value: https://rmpac.co.uk
+
+      # Render generates a strong value on first deploy. Rotating it signs
+      # everyone out and invalidates outstanding password-reset links.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # The club's real JustGiving page. Production refuses to start if this is
+      # missing or is not a justgiving.com address.
+      - key: JUSTGIVING_URL
+        value: https://www.justgiving.com/page/mark-mike-pspa
+
+      - key: LOG_LEVEL
+        value: info
+
+      # Must never be enabled in production; the configuration check enforces
+      # this, and it is declared here so the intent is explicit.
+      - key: ALLOW_SAMPLE_SEED
+        value: 'false'
+
+      # Optional public copy. Leave unset to use the built-in defaults.
+      - key: CLUB_WELCOME_COPY
+        sync: false
+      - key: FUNDRAISING_COPY
+        sync: false
+
+      # One-time first-administrator bootstrap. Set these in the dashboard,
+      # run `npm run bootstrap:admin` from a shell, then remove them.
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: BOOTSTRAP_ADMIN_NAME
+        sync: false

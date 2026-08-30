@@ -1,0 +1,446 @@
+// RMPAC application data model.
+//
+// Design notes that apply throughout:
+//
+//  * Identifiers are UUIDs so that public URLs never expose a record count or
+//    let a visitor walk the table by incrementing an integer.
+//  * Calendar values that have no meaningful time-of-day (dates of birth, round
+//    dates, race dates) use `@db.Date`. Storing them as instants would make a
+//    round drift across a day boundary under British Summer Time and silently
+//    change an age-grade calculation.
+//  * Elapsed times are integer milliseconds. Age grades and improvements are
+//    `Decimal`, never `Float`: binary floats would make two identical results
+//    compare unequal and quietly break the tie rules.
+//  * Derived scoring columns are publication snapshots. They are always
+//    rewritten by replaying the pure domain functions, never typed by a human.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// The connection URL lives in `prisma.config.ts` (Prisma 7 moved it out of the
+// schema) and reaches the client through the pg driver adapter in `src/lib/db.ts`.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations
+// ---------------------------------------------------------------------------
+
+enum AdministratorStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum RunnerStatus {
+  ACTIVE
+  INACTIVE
+  MERGED
+}
+
+/// The two categories the vendored WMA age-grade tables provide standards for.
+enum ScoringCategory {
+  MALE
+  FEMALE
+}
+
+enum SeasonType {
+  SUMMER
+  WINTER
+}
+
+enum PublicationState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DistanceChoice {
+  TWO_LAP
+  THREE_LAP
+}
+
+enum RaceStatus {
+  SCHEDULED
+  COMPLETED
+  POSTPONED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Administration and security
+// ---------------------------------------------------------------------------
+
+model Administrator {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Lower-cased and trimmed at the service boundary so uniqueness is reliable.
+  email       String              @unique
+  displayName String
+  status      AdministratorStatus @default(ACTIVE)
+
+  /// scrypt digest. The parameters live alongside it so the cost can be raised
+  /// later without invalidating existing credentials.
+  passwordHash       String
+  passwordAlgorithm  String   @default("scrypt")
+  passwordParameters Json
+  passwordUpdatedAt  DateTime @default(now())
+
+  lastSignedInAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions           AdminSession[]
+  auditEvents        AuditEvent[]        @relation("AuditActor")
+  issuedResets       AdminPasswordReset[] @relation("ResetIssuer")
+  receivedResets     AdminPasswordReset[] @relation("ResetSubject")
+  publishedSeasons   TtSeason[]
+  publishedRounds    TtRound[]
+  publishedRaces     Race[]
+  publishedChamps    Championship[]
+
+  @@index([status])
+  @@map("administrator")
+}
+
+model AdminSession {
+  id String @id @default(uuid()) @db.Uuid
+
+  administratorId String        @db.Uuid
+  administrator   Administrator @relation(fields: [administratorId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 of the opaque session token. The raw token exists only in the
+  /// user's cookie, so a database disclosure cannot be replayed as a login.
+  tokenHash String @unique
+
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+
+  revokedAt     DateTime?
+  revokedReason String?
+
+  /// Coarse only, for security review. No full user agent, no IP address.
+  clientSummary String?
+
+  createdAt DateTime @default(now())
+
+  @@index([administratorId])
+  @@index([expiresAt])
+  @@map("admin_session")
+}
+
+model AdminPasswordReset {
+  id String @id @default(uuid()) @db.Uuid
+
+  subjectId String        @db.Uuid
+  subject   Administrator @relation("ResetSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  issuedById String?        @db.Uuid
+  issuedBy   Administrator? @relation("ResetIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([subjectId])
+  @@map("admin_password_reset")
+}
+
+// ---------------------------------------------------------------------------
+// Runners
+// ---------------------------------------------------------------------------
+
+model Runner {
+  id String @id @default(uuid()) @db.Uuid
+
+  givenName  String
+  familyName String
+
+  /// Lower-cased, accent-folded, whitespace-collapsed "given family". Powers
+  /// duplicate detection and admin search. Deliberately not unique: two real
+  /// club members can share a name, so a human decides what is a duplicate.
+  searchName String
+
+  /// PRIVATE. Never appears in a public DTO, page, cache, log or audit payload.
+  /// Held solely to derive the age-grade standard for a result.
+  dateOfBirth DateTime @db.Date
+
+  category ScoringCategory
+  status   RunnerStatus    @default(ACTIVE)
+
+  /// Set when this record was merged into another; results follow the survivor.
+  canonicalRunnerId String?  @db.Uuid
+  canonicalRunner   Runner?  @relation("RunnerMerge", fields: [canonicalRunnerId], references: [id], onDelete: SetNull)
+  mergedRunners     Runner[] @relation("RunnerMerge")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeTrialResults   TtResult[]
+  championshipResults ChampionshipResult[]
+
+  @@index([searchName])
+  @@index([status])
+  @@index([category])
+  @@map("runner")
+}
+
+// ---------------------------------------------------------------------------
+// Time trial
+// ---------------------------------------------------------------------------
+
+model TtSeason {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String
+  slug String     @unique
+  type SeasonType
+
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  /// Human label spanning the club year, e.g. "2025/26".
+  clubYearLabel String
+
+  /// Copied from the season defaults at creation so a later rule change cannot
+  /// silently restate the distances a historical season was actually run over.
+  twoLapMetres   Int
+  threeLapMetres Int
+
+  state PublicationState @default(DRAFT)
+
+  scoringRulesVersion String
+  ageGradeVersion     String
+
+  publishedAt   DateTime?
+  publishedById String?        @db.Uuid
+  publishedBy   Administrator? @relation(fields: [publishedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rounds TtRound[]
+
+  @@index([state])
+  @@index([startDate])
+  @@map("tt_season")
+}
+
+model TtRound {
+  id String @id @default(uuid()) @db.Uuid
+
+  seasonId String   @db.Uuid
+  season   TtSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  /// 1-6. A season has exactly six rounds; the service layer enforces the cap
+  /// and this unique constraint enforces the ordering.
+  ordinal Int
+  name    String
+  date    DateTime @db.Date
+
+  state PublicationState @default(DRAFT)
+
+  publishedAt   DateTime?
+  publishedById String?        @db.Uuid
+  publishedBy   Administrator? @relation(fields: [publishedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  results TtResult[]
+
+  @@unique([seasonId, ordinal])
+  @@index([seasonId, date])
+  @@index([state])
+  @@map("tt_round")
+}
+
+model TtResult {
+  id String @id @default(uuid()) @db.Uuid
+
+  roundId String  @db.Uuid
+  round   TtRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  runnerId String @db.Uuid
+  runner   Runner @relation(fields: [runnerId], references: [id], onDelete: Restrict)
+
+  distanceChoice DistanceChoice
+  distanceMetres Int
+
+  /// The only value an administrator actually types. Integer milliseconds.
+  elapsedMilliseconds Int
+
+  // --- Derived below. Rewritten wholesale by recalculation. ---------------
+
+  finishingPosition Int
+  finishingPoints   Int
+  tiedOnTime        Boolean @default(false)
+
+  ageGradePercent Decimal? @db.Decimal(8, 5)
+  ageOnRoundDate  Int?
+
+  previousResultId        String?  @db.Uuid
+  previousAgeGradePercent Decimal? @db.Decimal(8, 5)
+  previousRoundOrdinal    Int?
+
+  improvement         Decimal? @db.Decimal(8, 5)
+  improvementPosition Int?
+  improvementPoints   Int      @default(0)
+
+  roundTotal Int @default(0)
+
+  scoringRulesVersion String
+  ageGradeVersion     String
+
+  /// Safe, non-personal explanation of how the numbers were reached, so an
+  /// administrator can answer "why did I score that?" without a developer.
+  calculationTrace Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roundId, runnerId])
+  @@index([runnerId])
+  @@index([roundId, distanceChoice])
+  @@map("tt_result")
+}
+
+// ---------------------------------------------------------------------------
+// Races and club championship
+// ---------------------------------------------------------------------------
+
+model Championship {
+  id String @id @default(uuid()) @db.Uuid
+
+  year Int    @unique
+  name String
+
+  state PublicationState @default(DRAFT)
+
+  scoringRulesVersion String
+
+  publishedAt   DateTime?
+  publishedById String?        @db.Uuid
+  publishedBy   Administrator? @relation(fields: [publishedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  races Race[]
+
+  @@index([state])
+  @@map("championship")
+}
+
+model Race {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String
+  slug String @unique
+
+  /// Short column heading for the championship table, e.g. "PCHALF".
+  shortLabel String
+
+  /// Calendar date and wall-clock start time in Europe/London. Splitting them
+  /// avoids the daylight-saving drift an instant would introduce for an event
+  /// whose start time is quoted locally.
+  date      DateTime @db.Date
+  startTime String?
+
+  locationName String?
+  address      String?
+  mapUrl       String?
+
+  distanceLabel  String?
+  distanceMetres Int?
+
+  leagueName        String?
+  entryInstructions String?
+  externalUrl       String?
+
+  status RaceStatus @default(SCHEDULED)
+
+  isChampionshipQualifier Boolean       @default(false)
+  championshipId          String?       @db.Uuid
+  championship            Championship? @relation(fields: [championshipId], references: [id], onDelete: SetNull)
+
+  state PublicationState @default(DRAFT)
+
+  publishedAt   DateTime?
+  publishedById String?        @db.Uuid
+  publishedBy   Administrator? @relation(fields: [publishedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  championshipResults ChampionshipResult[]
+
+  @@index([date])
+  @@index([status])
+  @@index([championshipId])
+  @@index([state])
+  @@map("race")
+}
+
+model ChampionshipResult {
+  id String @id @default(uuid()) @db.Uuid
+
+  raceId String @db.Uuid
+  race   Race   @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  runnerId String @db.Uuid
+  runner   Runner @relation(fields: [runnerId], references: [id], onDelete: Restrict)
+
+  category ScoringCategory
+
+  /// Position among RMPAC finishers of this category, entered by an admin.
+  categoryPosition Int
+
+  /// Equal to the category position in v1, stored explicitly so a future
+  /// scoring change does not require reinterpreting historical placings.
+  score Int
+
+  scoringRulesVersion String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([raceId, runnerId])
+  @@index([runnerId])
+  @@index([raceId, category])
+  @@map("championship_result")
+}
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id String @id @default(uuid()) @db.Uuid
+
+  /// Null only when the actor was later deleted; disabling preserves the link.
+  actorId String?        @db.Uuid
+  actor   Administrator? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  action     String
+  entityType String
+  entityId   String?
+
+  /// Changed-field summary only. Never passwords, tokens, secrets or dates of
+  /// birth — see `recordAuditEvent`, which strips those keys before writing.
+  summary Json?
+
+  correlationId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_event")
+}

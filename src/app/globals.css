@@ -1,0 +1,1175 @@
+/*
+ * RMPAC design system — "Quarry & Chalk"
+ *
+ * The Isle of Portland is a limestone quarry island, and the club's identity
+ * comes from that: warm stone paper rather than clinical white, engraved
+ * signage capitals for headings, and race-bib number blocks for every position.
+ *
+ * Two rules run through everything here:
+ *   1. Never signal state with colour alone. Counting scores, eligibility,
+ *      publication and race status each carry a mark, a label or both.
+ *   2. Target sizes stay at 44px and focus is always visible, because most of
+ *      this is read one-handed on a phone at the side of a road.
+ */
+
+/* ------------------------------------------------------------------ tokens */
+
+:root {
+  /* Limestone paper. Warm, never pure white — this is the page's character. */
+  --stone-50: #faf8f3;
+  --stone-100: #f4f1e9;
+  --stone-200: #e7e2d5;
+  --stone-300: #d5cebd;
+  --stone-400: #b0a894;
+  --stone-500: #7d7666;
+
+  --ink: #15171a;
+  --ink-soft: #43474d;
+  --ink-faint: #5f646b;
+
+  /* Straight from the club logo. */
+  --green: #007c32;
+  --purple: #722169;
+
+  /* Darkened for text and controls, keeping the same hue family. */
+  --green-deep: #00551f;
+  --green-deeper: #003d16;
+  --green-wash: #e6f1ea;
+  --purple-deep: #55144e;
+  --purple-wash: #f3e9f2;
+
+  --danger: #a3231b;
+  --danger-wash: #fbeae9;
+  --warn: #8a5300;
+  --warn-wash: #fdf1de;
+
+  --surface: #ffffff;
+  --surface-sunk: var(--stone-100);
+  --page: var(--stone-50);
+  --border: var(--stone-300);
+  --border-soft: var(--stone-200);
+
+  --focus: #0b5cd5;
+
+  --radius-sm: 3px;
+  --radius: 6px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px rgb(21 23 26 / 0.06);
+  --shadow: 0 2px 4px rgb(21 23 26 / 0.06), 0 8px 20px -12px rgb(21 23 26 / 0.18);
+  --shadow-lift: 0 4px 8px rgb(21 23 26 / 0.08), 0 20px 40px -20px rgb(21 23 26 / 0.28);
+
+  /* Clearance so the fixed donate control never covers page content. */
+  --donate-clearance: 5.5rem;
+
+  --measure: 68ch;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* The quarry after dark: cool slate, brand colours lifted to stay legible. */
+    --stone-50: #16181b;
+    --stone-100: #1d2024;
+    --stone-200: #2a2e34;
+    --stone-300: #3b4048;
+    --stone-400: #6a717b;
+    --stone-500: #939aa4;
+
+    --ink: #f2f0ea;
+    --ink-soft: #c6c9ce;
+    --ink-faint: #a4aab3;
+
+    --green: #3fb86c;
+    --purple: #c98cc0;
+    --green-deep: #6bd191;
+    --green-deeper: #93e2b0;
+    --green-wash: #10301d;
+    --purple-deep: #dcaad5;
+    --purple-wash: #2f1a2c;
+
+    --danger: #f08a82;
+    --danger-wash: #3a1a18;
+    --warn: #e0ac5c;
+    --warn-wash: #35270f;
+
+    --surface: #1d2024;
+    --surface-sunk: #16181b;
+    --page: #101215;
+    --border: #343941;
+    --border-soft: #272b31;
+
+    --focus: #74a9f7;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 20px -12px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 4px 8px rgb(0 0 0 / 0.4), 0 20px 40px -20px rgb(0 0 0 / 0.7);
+  }
+}
+
+/* ------------------------------------------------------------------- reset */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /*
+   * Deliberately no `scroll-behavior: smooth`. On a long results page an
+   * animated scroll delays the skip link by hundreds of milliseconds, which is
+   * exactly the wrong trade for the people who rely on it most.
+   */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--page);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--green-deep);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--purple-deep);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Reserve room so the fixed donate control never sits over the last control. */
+main {
+  flex: 1;
+  padding-bottom: var(--donate-clearance);
+}
+
+/* --------------------------------------------------------------- structure */
+
+.shell {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .shell {
+    padding-inline: 1.75rem;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -100%;
+  z-index: 100;
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--green-deep);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ header */
+
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.site-header__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding-block: 0.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.brand__mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand__name {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.brand__sub {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+@media (max-width: 26rem) {
+  .brand__name {
+    font-size: 0.9375rem;
+  }
+}
+
+/*
+ * Primary navigation sits below the brand on a phone as a scrollable rail, and
+ * inline on wider screens. The rail keeps all four sections reachable in one
+ * tap rather than hiding them behind a menu button.
+ */
+.site-nav {
+  border-top: 1px solid var(--border-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.site-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.site-nav__list {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-nav__link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  /* Tightened on the narrowest phones so all four sections fit without
+     scrolling; the rail still scrolls below that. */
+  padding: 0.5rem 0.5rem;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.site-nav__link:hover {
+  color: var(--green-deep);
+}
+
+.site-nav__link[aria-current='page'] {
+  color: var(--green-deep);
+  border-bottom-color: var(--green);
+}
+
+/* The underline alone would be colour-signalling, so the label is bold too. */
+.site-nav__link[aria-current='page'] {
+  font-weight: 800;
+}
+
+@media (min-width: 26rem) {
+  .site-nav__link {
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (min-width: 52rem) {
+  .site-header__bar {
+    gap: 2rem;
+  }
+  .brand {
+    flex: none;
+  }
+  .site-nav {
+    border-top: 0;
+    flex: 1;
+    overflow: visible;
+  }
+  .site-nav__list {
+    gap: 0.5rem;
+  }
+}
+
+/* -------------------------------------------------------------------- hero */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    168deg,
+    var(--green-deeper) 0%,
+    var(--green-deep) 58%,
+    var(--purple-deep) 100%
+  );
+  color: #fff;
+  isolation: isolate;
+}
+
+/*
+ * Contour lines, echoing an Ordnance Survey map of the island the club runs on.
+ * Purely decorative and aria-hidden; it carries no information.
+ */
+.hero__contours {
+  position: absolute;
+  inset: -20% -10%;
+  z-index: -1;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.hero__inner {
+  padding-block: 2.5rem 2.75rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 7vw, 3.25rem);
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.hero__lede {
+  max-width: 46ch;
+  font-size: 1.0625rem;
+  color: rgb(255 255 255 / 0.92);
+}
+
+.hero a {
+  color: #fff;
+}
+
+/* --------------------------------------------------------------- typography */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 1rem;
+}
+
+.section-head h2 {
+  font-size: clamp(1.25rem, 4vw, 1.6rem);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.section-head h3 {
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.muted {
+  color: var(--ink-faint);
+  font-size: 0.875rem;
+}
+
+.prose {
+  max-width: var(--measure);
+}
+
+.prose p + p {
+  margin-top: 0.75rem;
+}
+
+.prose ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.prose li + li {
+  margin-top: 0.35rem;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------- cards */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.125rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card__head {
+  padding: 1rem 1.125rem 0.75rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.card__body {
+  padding: 1.125rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 44rem) {
+  .grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 62rem) {
+  .grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* --------------------------------------------------------- the bib badge */
+
+/*
+ * The signature element: a race-bib number block used for every position in the
+ * app. The notches on the left and right edges read as the perforations on a
+ * pinned race number.
+ */
+.bib {
+  --bib-bg: var(--ink);
+  --bib-fg: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.25rem;
+  padding: 0.125rem 0.5rem;
+  background: var(--bib-bg);
+  color: var(--bib-fg);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.125rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  border-radius: var(--radius-sm);
+  position: relative;
+  flex: none;
+}
+
+.bib::before,
+.bib::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  background: var(--page);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.bib::before {
+  left: -2px;
+}
+
+.bib::after {
+  right: -2px;
+}
+
+.bib--gold {
+  --bib-bg: var(--green-deep);
+}
+
+.bib--purple {
+  --bib-bg: var(--purple-deep);
+}
+
+.bib--quiet {
+  --bib-bg: var(--surface-sunk);
+  --bib-fg: var(--ink-soft);
+  border: 1px solid var(--border);
+}
+
+.bib--sm {
+  min-width: 2rem;
+  min-height: 1.75rem;
+  font-size: 0.9375rem;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+/*
+ * Wide competition tables scroll horizontally rather than shrinking their text.
+ * The wrapper is focusable and labelled so a keyboard user can scroll it, which
+ * is a WCAG requirement people usually miss on scrolling regions.
+ */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.table-scroll:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+/*
+ * A caption belongs to the table, so it inherits the table's width — which on a
+ * wide competition table means it stretches far beyond the visible area and
+ * gets clipped by the horizontal scroll. Sticking it to the left edge and
+ * capping its width keeps the explanation readable without scrolling, and it
+ * stays put while the columns move underneath.
+ *
+ * It is also set in normal case: these captions carry real instructions about
+ * how to read the table, and long uppercase text is markedly harder to read.
+ */
+caption {
+  position: sticky;
+  left: 0;
+  width: max-content;
+  /*
+   * `100%` here would resolve against the *table*, which is exactly the width
+   * we are trying not to inherit, so the bound is taken from the viewport.
+   */
+  max-width: min(calc(100vw - 2.5rem), 44rem);
+  box-sizing: border-box;
+  text-align: left;
+  padding: 0.75rem 1rem 0.875rem;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--border-soft);
+  white-space: normal;
+  text-wrap: pretty;
+}
+
+th,
+td {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: middle;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-sunk);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover td {
+  background: var(--surface-sunk);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/*
+ * A counting score carries three signals: a tint, a bold weight and a bullet
+ * glyph, plus visually hidden text. Colour is never the only cue.
+ */
+.counts {
+  background: var(--green-wash);
+  font-weight: 800;
+  color: var(--green-deeper);
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+.counts::after {
+  content: ' •';
+  color: var(--green);
+}
+
+.absent {
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------------ badges */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.tag--green {
+  background: var(--green-wash);
+  color: var(--green-deeper);
+  border-color: var(--green);
+}
+
+.tag--purple {
+  background: var(--purple-wash);
+  color: var(--purple-deep);
+  border-color: var(--purple);
+}
+
+.tag--warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.tag--danger {
+  background: var(--danger-wash);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1.125rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 80ms ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  background: var(--green-deep);
+  color: #fff;
+  border-color: var(--green-deep);
+}
+
+.btn--primary:hover {
+  background: var(--green-deeper);
+  color: #fff;
+}
+
+.btn--secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.btn--secondary:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.btn--danger:hover {
+  color: #fff;
+  filter: brightness(0.92);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--green-deep);
+  border-color: transparent;
+  padding-inline: 0.5rem;
+}
+
+.btn--sm {
+  min-height: 36px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------ donate action */
+
+/*
+ * Fixed on every route including admin and sign-in. `--donate-clearance` on
+ * <main> guarantees it never covers the last control on a page, and the safe
+ * area inset keeps it clear of the home indicator on modern phones.
+ */
+.donate {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.625rem 1.125rem;
+  border-radius: 999px;
+  background: var(--purple-deep);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  box-shadow: var(--shadow-lift);
+  border: 2px solid rgb(255 255 255 / 0.22);
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+}
+
+.donate:hover {
+  background: var(--purple);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.donate__icon {
+  flex: none;
+}
+
+@media (max-width: 30rem) {
+  .donate {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.875rem;
+  }
+}
+
+/* -------------------------------------------------------------- empty/state */
+
+.notice {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ink-faint);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+  background: var(--surface);
+}
+
+.notice--info {
+  border-left-color: var(--green);
+  background: var(--green-wash);
+  color: var(--green-deeper);
+}
+
+.notice--warn {
+  border-left-color: var(--warn);
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.notice--error {
+  border-left-color: var(--danger);
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.notice__title {
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.empty {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.empty__title {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.35rem;
+}
+
+/* ------------------------------------------------------------------- forms */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field > label,
+.field-label {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.field__hint {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+.field__error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='date'],
+input[type='time'],
+input[type='number'],
+input[type='url'],
+select,
+textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.625rem;
+  min-height: 44px;
+  width: 100%;
+}
+
+textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin: 0;
+}
+
+legend {
+  font-weight: 800;
+  padding-inline: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+
+.checkbox-row input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--green-deep);
+}
+
+/* --------------------------------------------------------------- selectors */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.35rem 0.875rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.chip:hover {
+  border-color: var(--green);
+  color: var(--green-deep);
+}
+
+.chip[aria-current='page'],
+.chip[aria-current='true'] {
+  background: var(--green-deep);
+  border-color: var(--green-deep);
+  color: #fff;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------- disclosure */
+
+details.explainer {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 0;
+}
+
+details.explainer > summary {
+  cursor: pointer;
+  padding: 0.875rem 1rem;
+  font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+details.explainer > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.explainer > summary::before {
+  content: '▸';
+  color: var(--green);
+  font-size: 0.875rem;
+  transition: transform 140ms ease;
+}
+
+details.explainer[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details.explainer > .explainer__body {
+  padding: 0 1rem 1rem;
+}
+
+/* ------------------------------------------------------------------ footer */
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding-block: 1.75rem;
+  margin-top: 2.5rem;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+}
+
+.site-footer a {
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------- reveal on load */
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    animation: reveal 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+  .reveal:nth-child(1) {
+    animation-delay: 40ms;
+  }
+  .reveal:nth-child(2) {
+    animation-delay: 110ms;
+  }
+  .reveal:nth-child(3) {
+    animation-delay: 180ms;
+  }
+  .reveal:nth-child(4) {
+    animation-delay: 250ms;
+  }
+  .reveal:nth-child(5) {
+    animation-delay: 320ms;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------- utilities */
+
+.flow > * + * {
+  margin-top: var(--flow-gap, 1rem);
+}
+
+.split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pad-block {
+  padding-block: 2rem;
+}
+
+.pad-block-sm {
+  padding-block: 1.25rem;
+}
