@@ -15,7 +15,8 @@ export const MEMBER_STATE = resolve(process.cwd(), 'tests/e2e/.auth/member.json'
 
 export default async function globalSetup(config: FullConfig): Promise<void> {
   const env = e2eEnv();
-  const passcode = env.SITE_PASSCODE;
+  // `e2eEnv` guarantees this is present; the suite is meant to run gated.
+  const passcode = env.SITE_PASSCODE as string;
   const baseURL = config.projects[0]?.use?.baseURL ?? 'http://127.0.0.1:3100';
 
   mkdirSync(dirname(MEMBER_STATE), { recursive: true });
@@ -24,12 +25,6 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   try {
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
-
-    if (!passcode) {
-      // No gate configured: save an empty state so the suite still runs.
-      await context.storageState({ path: MEMBER_STATE });
-      return;
-    }
 
     await page.goto('/unlock');
     await page.getByLabel('Club passcode').fill(passcode);

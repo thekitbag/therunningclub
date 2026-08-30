@@ -39,6 +39,10 @@ jobs:
       APP_ORIGIN: http://127.0.0.1:3100
       SESSION_SECRET: ci-only-session-secret-well-over-thirty-two-characters
       JUSTGIVING_URL: https://www.justgiving.com/page/ci-fixture
+      # The browser suite runs against a gated site, because that is what
+      # production is. Without this the server refuses to start — which is the
+      # fail-fast check working, not a bug.
+      SITE_PASSCODE: ci-club-passcode
       LOG_LEVEL: error
 
     steps:

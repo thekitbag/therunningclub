@@ -11,7 +11,15 @@ import { resolve } from 'node:path';
  */
 
 /** Variables the browser suite needs, wherever they come from. */
-const REQUIRED = ['DATABASE_URL', 'APP_ORIGIN', 'SESSION_SECRET', 'JUSTGIVING_URL'] as const;
+const REQUIRED = [
+  'DATABASE_URL',
+  'APP_ORIGIN',
+  'SESSION_SECRET',
+  'JUSTGIVING_URL',
+  // Required, not optional: the suite is meant to exercise a gated site, and
+  // running it ungated would pass while proving nothing about what ships.
+  'SITE_PASSCODE',
+] as const;
 
 /**
  * Configuration for the browser suite.
@@ -54,6 +62,15 @@ export function e2eEnv(): Record<string, string> {
       value = value.slice(1, -1);
     }
     env[key] = value;
+  }
+
+  // Validate whichever source the values came from, not only the environment
+  // fallback: a half-filled .env.e2e should fail here rather than silently
+  // running the suite against a configuration that never ships.
+  for (const key of REQUIRED) {
+    if (!env[key]) {
+      throw new Error(`.env.e2e is missing ${key}. See .env.e2e.example.`);
+    }
   }
   return env;
 }
