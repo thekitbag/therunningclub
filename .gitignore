@@ -42,3 +42,17 @@ tests/e2e/.auth/
 .vercel
 .idea/
 .vscode/
+
+# Club personal data. The repository is public.
+#
+# `runner.dateOfBirth` is marked PRIVATE in the schema: it exists only to derive
+# an age-grade standard and must never be published. sync-member-roster-2026.sql
+# carries the real dates of birth of 63 named members, so it stays local — git
+# history is permanent and public forks cannot be recalled. Run it from your
+# machine; nothing in the deployment needs it.
+scripts/sql/sync-member-roster-2026.sql
+
+# Working data extracted from club results: names, times and age categories for
+# named members. The public site keeps these behind SITE_PASSCODE, so they do
+# not belong in a public repository either.
+data/

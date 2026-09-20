@@ -19,6 +19,24 @@ import { entry, mmss, priorForImprovement, utc, type FixtureRunner } from './fix
  * positive improvements in the field both imply 10. Per the reference-precedence
  * rule the deterministic formula wins, so this fixture asserts 10 and records
  * the discrepancy here rather than encoding the spreadsheet's slip.
+ *
+ * ---------------------------------------------------------------------------
+ * THE PUBLISHED POINTS ON THIS SHEET ARE NO LONGER THE POINTS WE CALCULATE
+ * ---------------------------------------------------------------------------
+ *
+ * Scoring changed between this winter season and summer 2026. The published
+ * sheet here awards a fixed ten to each distance winner and sizes improvement
+ * points by the number of improvers. The committee's summer 2026 workbook
+ * ("2026 Summer Time Trial.xlsx") sizes both ladders by field size instead,
+ * which is what `RMPAC_SCORING_V3` implements and what this file now asserts.
+ *
+ * The published values are kept alongside the current ones so the change stays
+ * visible and so this round can be re-checked if the committee confirms a
+ * different intent. See docs/scoring-rules-2026.md.
+ *
+ * The one place the two rule sets are known to disagree beyond the ladder size
+ * is a dead heat, and this sheet is the authority we follow: its tie at fifth
+ * scores 6, 6, 4 — competition ranking, with the next place skipped.
  */
 
 const ROUND_DATE = utc('2026-03-24');
@@ -58,18 +76,21 @@ const THREE_LAP = [
 const PUBLISHED_IMPROVEMENTS: ReadonlyArray<{
   runnerId: string;
   improvement: number;
+  /** What the winter sheet printed: one point per improver, ten down to one. */
+  publishedPoints: number;
+  /** What V3 awards: fourteen runners had a comparison, so the ladder tops at 14. */
   points: number;
 }> = [
-  { runnerId: 'two-1', improvement: 9.63, points: 10 },
-  { runnerId: 'three-1', improvement: 7.18, points: 9 },
-  { runnerId: 'two-3', improvement: 6.02, points: 8 },
-  { runnerId: 'three-2', improvement: 6.01, points: 7 },
-  { runnerId: 'two-2', improvement: 5.06, points: 6 },
-  { runnerId: 'three-3', improvement: 2.68, points: 5 },
-  { runnerId: 'two-5', improvement: 2.01, points: 4 },
-  { runnerId: 'three-4', improvement: 1.88, points: 3 },
-  { runnerId: 'two-4', improvement: 1.05, points: 2 },
-  { runnerId: 'two-7', improvement: 0.56, points: 1 },
+  { runnerId: 'two-1', improvement: 9.63, publishedPoints: 10, points: 14 },
+  { runnerId: 'three-1', improvement: 7.18, publishedPoints: 9, points: 13 },
+  { runnerId: 'two-3', improvement: 6.02, publishedPoints: 8, points: 12 },
+  { runnerId: 'three-2', improvement: 6.01, publishedPoints: 7, points: 11 },
+  { runnerId: 'two-2', improvement: 5.06, publishedPoints: 6, points: 10 },
+  { runnerId: 'three-3', improvement: 2.68, publishedPoints: 5, points: 9 },
+  { runnerId: 'two-5', improvement: 2.01, publishedPoints: 4, points: 8 },
+  { runnerId: 'three-4', improvement: 1.88, publishedPoints: 3, points: 7 },
+  { runnerId: 'two-4', improvement: 1.05, publishedPoints: 2, points: 6 },
+  { runnerId: 'two-7', improvement: 0.56, publishedPoints: 1, points: 5 },
 ];
 
 const ALL_ENTRIES = [
@@ -102,14 +123,17 @@ describe('golden round: 24 March 2026', () => {
     expect(scored.results).toHaveLength(14);
   });
 
-  it('awards the published two-lap finishing points to nine finishers', () => {
+  it('sizes the two-lap ladder from the nine-strong field', () => {
+    // Published sheet: 10, 9, 8, 7, 6, 5, 4, 3, 2 under the old fixed ladder.
     const points = TWO_LAP.map((f) => byId[f.r.runnerId]?.finishingPoints);
-    expect(points).toEqual([10, 9, 8, 7, 6, 5, 4, 3, 2]);
+    expect(points).toEqual([9, 8, 7, 6, 5, 4, 3, 2, 1]);
   });
 
-  it('awards the published three-lap finishing points independently to five finishers', () => {
+  it('gives the five three-lap finishers the same ladder as the larger field', () => {
+    // Published sheet: 10, 9, 8, 7, 6. The top score is the larger field's size
+    // either way, so the small field is still not penalised for being small.
     const points = THREE_LAP.map((f) => byId[f.r.runnerId]?.finishingPoints);
-    expect(points).toEqual([10, 9, 8, 7, 6]);
+    expect(points).toEqual([9, 8, 7, 6, 5]);
   });
 
   it('finds exactly the ten published improvers', () => {
@@ -132,19 +156,20 @@ describe('golden round: 24 March 2026', () => {
   it('separates the 6.02 and 6.01 improvements rather than tying them', () => {
     // Only one hundredth apart; rounding before ranking would merge these two
     // and shift every point below them.
-    expect(byId['two-3']?.improvementPoints).toBe(8);
-    expect(byId['three-2']?.improvementPoints).toBe(7);
+    expect(byId['two-3']?.improvementPoints).toBe(12);
+    expect(byId['three-2']?.improvementPoints).toBe(11);
   });
 
-  it('produces a highest round total of 20', () => {
+  it('produces a highest round total of 23', () => {
+    // The published sheet totalled 20 for this row under the old ladders.
     const totals = scored.results.map((r) => r.roundTotal);
-    expect(Math.max(...totals)).toBe(20);
+    expect(Math.max(...totals)).toBe(23);
 
     // The top row is both the fastest two-lap runner and the largest improver.
     const top = byId['two-1'];
-    expect(top?.finishingPoints).toBe(10);
-    expect(top?.improvementPoints).toBe(10);
-    expect(top?.roundTotal).toBe(20);
+    expect(top?.finishingPoints).toBe(9);
+    expect(top?.improvementPoints).toBe(14);
+    expect(top?.roundTotal).toBe(23);
   });
 
   it('keeps every scoring component an integer', () => {

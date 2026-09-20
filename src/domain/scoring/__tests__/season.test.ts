@@ -95,10 +95,10 @@ describe('scoreSeason', () => {
     const leader = result.standings.MALE[0];
     expect(leader?.roundsCompleted).toBe(6);
     expect(leader?.rounds.filter((r) => r.counts)).toHaveLength(4);
-    // Every round is worth 10 finishing points and nobody improves (identical
-    // times, unchanging ages), so the best four sum to 40, not the six-round 60.
-    expect(leader?.bestFourTotal).toBe(40);
-    expect(leader?.rounds.every((r) => r.total === 10)).toBe(true);
+    // A field of two means 2 finishing points for the win, and nobody improves
+    // (identical times, unchanging ages), so the best four sum to 8, not 12.
+    expect(leader?.bestFourTotal).toBe(8);
+    expect(leader?.rounds.every((r) => r.total === 2)).toBe(true);
   });
 
   it('treats a mid-season birthday as a genuine age-grade improvement', () => {
@@ -115,8 +115,9 @@ describe('scoreSeason', () => {
     expect(finalRound?.results[0]?.improvement).toBeGreaterThan(0);
     expect(finalRound?.results[0]?.improvementPoints).toBe(1);
 
-    // 10 finishing points every round, plus the single improvement point.
-    expect(result.standings.MALE[0]?.bestFourTotal).toBe(41);
+    // A field of one: 1 finishing point every round, plus the single
+    // improvement point in the final round.
+    expect(result.standings.MALE[0]?.bestFourTotal).toBe(5);
   });
 
   it('sums only what was run when a runner completed fewer than four rounds', () => {
@@ -128,7 +129,8 @@ describe('scoreSeason', () => {
     const alice = result.standings.FEMALE[0];
 
     expect(alice?.roundsCompleted).toBe(2);
-    expect(alice?.bestFourTotal).toBe(20);
+    // One runner per round, so one finishing point per round.
+    expect(alice?.bestFourTotal).toBe(2);
     expect(alice?.rounds.every((r) => r.counts || r.total === null)).toBe(true);
   });
 
@@ -140,7 +142,7 @@ describe('scoreSeason', () => {
     const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
     const alice = result.standings.FEMALE[0];
 
-    expect(alice?.rounds[0]?.total).toBe(10);
+    expect(alice?.rounds[0]?.total).toBe(1);
     // Absence must stay distinguishable from a scoring zero.
     expect(alice?.rounds[1]?.total).toBeNull();
   });

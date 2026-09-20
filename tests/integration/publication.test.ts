@@ -91,7 +91,8 @@ describe('publishing a round', () => {
 
     const view = await getPublicRoundView(season.slug, round.id);
     expect(view?.byDistance.TWO_LAP.rows).toHaveLength(1);
-    expect(view?.byDistance.TWO_LAP.rows[0]?.finishingPoints).toBe(10);
+    // A field of one: the ladder is sized by the field, so the win is worth 1.
+    expect(view?.byDistance.TWO_LAP.rows[0]?.finishingPoints).toBe(1);
 
     const stored = await prisma.ttRound.findUniqueOrThrow({ where: { id: round.id } });
     expect(stored.state).toBe('PUBLISHED');
@@ -174,9 +175,9 @@ describe('recalculation after historical edits', () => {
     const stored = await prisma.ttResult.findFirstOrThrow({
       where: { roundId: roundTwo.id, runnerId: runner.id },
     });
-    expect(stored.finishingPoints).toBe(10);
+    expect(stored.finishingPoints).toBe(1);
     expect(stored.improvementPoints).toBe(1);
-    expect(stored.roundTotal).toBe(11);
+    expect(stored.roundTotal).toBe(2);
     expect(stored.ageGradePercent).not.toBeNull();
     expect(stored.previousRoundOrdinal).toBe(1);
     expect(stored.calculationTrace).not.toBeNull();
@@ -199,7 +200,7 @@ describe('recalculation after historical edits', () => {
       where: { roundId: roundTwo.id, runnerId: runner.id },
     });
     expect(after.improvementPoints).toBe(0);
-    expect(after.roundTotal).toBe(10);
+    expect(after.roundTotal).toBe(1);
     expect(Number(after.improvement)).toBeLessThan(0);
   });
 
@@ -289,17 +290,17 @@ describe('recalculation after historical edits', () => {
     ]);
     expect(
       (await prisma.ttResult.findFirstOrThrow({ where: { runnerId: slow.id } })).finishingPoints,
-    ).toBe(9);
+    ).toBe(1);
 
     await saveRoundResults(round.id, [
       { runnerId: slow.id, distanceChoice: 'TWO_LAP', time: '25:00' },
     ]);
 
     expect(await prisma.ttResult.findFirst({ where: { runnerId: fast.id } })).toBeNull();
-    // The remaining runner is now the winner.
+    // The remaining runner is now the winner of a one-strong field.
     expect(
       (await prisma.ttResult.findFirstOrThrow({ where: { runnerId: slow.id } })).finishingPoints,
-    ).toBe(10);
+    ).toBe(1);
   });
 });
 
@@ -471,10 +472,10 @@ describe('scoring versions', () => {
     // Written out in full rather than compared against the constant: a version
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V2');
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
     expect(stored.ageGradeVersion).toBe('WMA_ROAD_2015_RMPAC_V1');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V2');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
   });
 });
