@@ -25,7 +25,7 @@ const pointsFor = (result: { results: readonly { runnerId: string; finishingPoin
   Object.fromEntries(result.results.map((r) => [r.runnerId, r.finishingPoints]));
 
 describe('finishing points', () => {
-  it('awards 10 to the winner of each distance regardless of field size', () => {
+  it('awards the winner one point per runner in the larger field', () => {
     for (const fieldSize of [1, 2, 5, 9, 10, 15]) {
       const entries = Array.from({ length: fieldSize }, (_, index) =>
         entry(runner(`r${index}`, 'MALE'), 'TWO_LAP', mmss(20, index)),
@@ -33,16 +33,76 @@ describe('finishing points', () => {
       const result = score(entries);
       const winner = result.results.find((r) => r.runnerId === 'r0');
       expect(winner?.finishingPosition, `field of ${fieldSize}`).toBe(1);
-      expect(winner?.finishingPoints, `field of ${fieldSize}`).toBe(10);
+      expect(winner?.finishingPoints, `field of ${fieldSize}`).toBe(fieldSize);
     }
   });
 
-  it('descends by one point per position and pays nothing below tenth', () => {
+  it('descends by one point per position, with the last finisher on one', () => {
+    // Thirteen runners means thirteen points for the win. Nobody scores zero
+    // for finishing, which is the change from the old fixed ten-point ladder.
     const entries = Array.from({ length: 13 }, (_, index) =>
       entry(runner(`r${index}`, 'MALE'), 'TWO_LAP', mmss(20, index)),
     );
     const points = pointsFor(score(entries));
-    expect(Object.values(points)).toEqual([10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0]);
+    expect(Object.values(points)).toEqual([13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+  });
+
+  it('never pays a finisher zero, whatever the field size or shape', () => {
+    // The old ladder capped at ten and paid nothing from eleventh down. Under
+    // the club's rule the ladder is as long as the field, so the last finisher
+    // in the larger field scores exactly 1 and nobody scores 0.
+    for (const [two, three] of [
+      [1, 0],
+      [13, 4],
+      [4, 13],
+      [11, 11],
+      [25, 1],
+    ] as const) {
+      const entries = [
+        ...Array.from({ length: two }, (_, i) =>
+          entry(runner(`two-${i}`, 'MALE'), 'TWO_LAP', mmss(20, i)),
+        ),
+        ...Array.from({ length: three }, (_, i) =>
+          entry(runner(`three-${i}`, 'MALE'), 'THREE_LAP', mmss(30, i)),
+        ),
+      ];
+      const result = score(entries);
+      const points = result.results.map((r) => r.finishingPoints);
+      expect(Math.min(...points), `field ${two}/${three}`).toBe(1);
+      expect(Math.max(...points), `field ${two}/${three}`).toBe(Math.max(two, three));
+    }
+  });
+
+  it('still pays at least one point when a dead heat shortens the ladder', () => {
+    // Two runners tie for last in a field of four. Competition ranking means
+    // nobody takes position 4, so the floor lands at 2 rather than 1 — but it
+    // is still never 0.
+    const entries = [
+      entry(runner('a', 'MALE'), 'TWO_LAP', mmss(20, 0)),
+      entry(runner('b', 'MALE'), 'TWO_LAP', mmss(21, 0)),
+      entry(runner('c', 'MALE'), 'TWO_LAP', mmss(22, 0)),
+      entry(runner('d', 'MALE'), 'TWO_LAP', mmss(22, 0)),
+    ];
+    const points = Object.values(pointsFor(score(entries)));
+    expect(points).toEqual([4, 3, 2, 2]);
+    expect(Math.min(...points)).toBeGreaterThan(0);
+  });
+
+  it('sizes both ladders from the larger field, so a small field is not penalised', () => {
+    // Four three-lap runners score off the same ladder as the nine two-lap
+    // runners: the three-lap winner takes 9, not 4.
+    const entries = [
+      ...Array.from({ length: 9 }, (_, i) =>
+        entry(runner(`two-${i}`, 'MALE'), 'TWO_LAP', mmss(20, i)),
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        entry(runner(`three-${i}`, 'MALE'), 'THREE_LAP', mmss(30, i)),
+      ),
+    ];
+    const points = pointsFor(score(entries));
+    expect(points['two-0']).toBe(9);
+    expect(points['three-0']).toBe(9);
+    expect(points['three-3']).toBe(6);
   });
 
   it('ranks the two distances independently', () => {
@@ -55,7 +115,7 @@ describe('finishing points', () => {
       entry(runner('three-b', 'MALE'), 'THREE_LAP', mmss(31, 0)),
     ];
     const points = pointsFor(score(entries));
-    expect(points).toEqual({ 'two-a': 10, 'two-b': 9, 'three-a': 10, 'three-b': 9 });
+    expect(points).toEqual({ 'two-a': 2, 'two-b': 1, 'three-a': 2, 'three-b': 1 });
   });
 
   it('ranks male and female runners in one shared field per distance', () => {
@@ -65,8 +125,8 @@ describe('finishing points', () => {
       entry(runner('f2', 'FEMALE'), 'TWO_LAP', mmss(21, 0)),
     ];
     const result = score(entries);
-    // The female runner beat the male runner outright, so she takes the 10.
-    expect(pointsFor(result)).toEqual({ f1: 10, m1: 9, f2: 8 });
+    // The female runner beat the male runner outright, so she takes top points.
+    expect(pointsFor(result)).toEqual({ f1: 3, m1: 2, f2: 1 });
   });
 
   it('filtering by category does not change any calculated point value', () => {
@@ -80,8 +140,8 @@ describe('finishing points', () => {
     const femaleView = mixed.results.filter((r) => r.category === 'FEMALE');
 
     // Displaying a female-only table must not renumber her as 1st and 2nd with
-    // 10 and 9 points; she keeps the 10 and 8 earned in the mixed field.
-    expect(femaleView.map((r) => r.finishingPoints)).toEqual([10, 8]);
+    // 4 and 3 points; she keeps the 4 and 2 earned in the mixed field.
+    expect(femaleView.map((r) => r.finishingPoints)).toEqual([4, 2]);
     expect(femaleView.map((r) => r.finishingPosition)).toEqual([1, 3]);
   });
 
@@ -96,7 +156,7 @@ describe('finishing points', () => {
     const byId = Object.fromEntries(result.results.map((r) => [r.runnerId, r]));
 
     expect([byId.a, byId.b, byId.c, byId.d].map((r) => r?.finishingPosition)).toEqual([1, 2, 2, 4]);
-    expect([byId.a, byId.b, byId.c, byId.d].map((r) => r?.finishingPoints)).toEqual([10, 9, 9, 7]);
+    expect([byId.a, byId.b, byId.c, byId.d].map((r) => r?.finishingPoints)).toEqual([4, 3, 3, 1]);
     expect(byId.b?.tiedOnTime).toBe(true);
     expect(byId.a?.tiedOnTime).toBe(false);
   });
@@ -206,7 +266,9 @@ describe('improvement points', () => {
 
     expect(result.improverCount).toBe(1);
     const byId = Object.fromEntries(result.results.map((r) => [r.runnerId, r]));
-    expect(byId.better?.improvementPoints).toBe(1);
+    // All three had a comparison available, so the ladder tops at 3 even though
+    // only one of them improved.
+    expect(byId.better?.improvementPoints).toBe(3);
     // Standing still is not improving, so it scores nothing.
     expect(byId.same?.improvementPoints).toBe(0);
     expect(byId.same?.improvement).toBeCloseTo(0, 9);
@@ -265,9 +327,10 @@ describe('round totals', () => {
     });
 
     const only = result.results[0];
-    expect(only?.finishingPoints).toBe(10);
+    // A field of one: one point for the win, and one for the only comparison.
+    expect(only?.finishingPoints).toBe(1);
     expect(only?.improvementPoints).toBe(1);
-    expect(only?.roundTotal).toBe(11);
+    expect(only?.roundTotal).toBe(2);
     expect(Number.isInteger(only?.roundTotal)).toBe(true);
   });
 });
@@ -285,7 +348,8 @@ describe('validation problems', () => {
 
     const byId = Object.fromEntries(result.results.map((r) => [r.runnerId, r]));
     // Finishing points still calculate — only the age-graded parts are missing.
-    expect(byId.toddler?.finishingPoints).toBe(9);
+    // Two runners, so the ladder is 2 then 1.
+    expect(byId.toddler?.finishingPoints).toBe(1);
     expect(byId.toddler?.ageGradePercent).toBeNull();
     expect(byId.ok?.ageGradePercent).not.toBeNull();
   });

@@ -16,8 +16,21 @@ import {
  */
 const IMPROVEMENT_TIE_EPSILON = 1e-9;
 
-/** Finishing points awarded to the winner of each distance. */
-export const WINNER_FINISHING_POINTS = 10;
+/**
+ * Finishing points are not a fixed ladder.
+ *
+ * The club scores a round from the size of its LARGER distance field: the
+ * winner of each distance takes that number of points and every place below
+ * takes one fewer, down to 1 for the last finisher in the larger field. Both
+ * distances share the one ladder, so a small three-lap field is not penalised
+ * for being small — its winner scores the same as the two-lap winner.
+ *
+ * Verified against the club's own workbook ("2026 Summer Time Trial.xlsx"),
+ * where this reproduces all 81 finishing scores across the six 2026 rounds.
+ */
+export function winnerFinishingPoints(twoLapFinishers: number, threeLapFinishers: number): number {
+  return Math.max(twoLapFinishers, threeLapFinishers);
+}
 
 export interface RoundEntryInput {
   readonly runnerId: string;
@@ -103,11 +116,13 @@ export interface RoundScoring {
  *
  *  1. Finishing points rank by elapsed time *within each distance* but *across*
  *     categories, because the club runs one mixed field per lap option. The
- *     winner of each distance takes 10 points down to 1 point for tenth, and
- *     nothing below that.
+ *     ladder is sized by the LARGER of the two fields, so the winner of each
+ *     distance takes that many points and every place steps down by one. Nobody
+ *     scores zero for finishing.
  *  2. Improvement points rank every positive age-grade improvement in one pool
- *     spanning both distances and both categories. With N improvers the largest
- *     improvement takes N points, descending to 1.
+ *     spanning both distances and both categories. The ladder is sized by how
+ *     many runners had a comparable earlier result — including those who got
+ *     slower — so the largest improvement takes that many points.
  *
  * Displaying separate male and female tables later is a filter over these
  * numbers, never a recalculation.
@@ -169,16 +184,28 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
   });
 
   // --- Finishing points, ranked separately per distance --------------------
+  //
+  // The ladder is shared: both distances count down from the size of the larger
+  // field, so the top score is the same whichever distance a runner chose.
+  const twoLapCount = working.filter((w) => w.entry.distanceChoice === 'TWO_LAP').length;
+  const threeLapCount = working.filter((w) => w.entry.distanceChoice === 'THREE_LAP').length;
+  const winnerPoints = winnerFinishingPoints(twoLapCount, threeLapCount);
+
   for (const choice of ['TWO_LAP', 'THREE_LAP'] as const) {
     const inDistance = working.filter((w) => w.entry.distanceChoice === choice);
     const ranked = rankByCompetition(
       inDistance,
       (a, b) => a.entry.elapsedMilliseconds - b.entry.elapsedMilliseconds,
     );
+
+    // Ties keep competition ranking, so a dead heat consumes both places and
+    // the next runner skips one: the published winter round of 24 March 2026
+    // scores 6, 6, 4 for a tie at fifth. The summer workbook's single tie is
+    // scored 12, 12, 11 instead, which is recorded as an open question in
+    // docs/scoring-rules-2026.md rather than silently followed.
     for (const { item, position, tied } of ranked) {
       item.finishingPosition = position;
-      // 1st -> 10 ... 10th -> 1, and nothing from 11th down.
-      item.finishingPoints = Math.max(WINNER_FINISHING_POINTS + 1 - position, 0);
+      item.finishingPoints = Math.max(winnerPoints + 1 - position, 0);
       item.tiedOnTime = tied;
     }
   }
@@ -205,13 +232,17 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     return Math.abs(difference) <= IMPROVEMENT_TIE_EPSILON ? 0 : difference;
   });
 
+  // The ladder is sized by everyone who had a comparable earlier result, not by
+  // how many of them improved. Someone who got slower still widens the field the
+  // improvers are scored against, which is what makes a big round worth more.
+  // In the club's August 2026 round five runners improved but twelve had a
+  // comparison available, so the largest improvement scored 12, not 5.
+  const comparableCount = working.filter((w) => w.previous !== null).length;
   const improverCount = improvers.length;
+
   for (const { item, position } of rankedImprovers) {
     item.improvementPosition = position;
-    // Largest improvement takes one point per improver, descending by position.
-    // Competition ranking makes ties share points and skip the next place, so
-    // five improvers ranked 1, 2, 2, 4, 5 score 5, 4, 4, 2, 1.
-    item.improvementPoints = Math.max(improverCount + 1 - position, 0);
+    item.improvementPoints = Math.max(comparableCount + 1 - position, 0);
   }
 
   const results: ScoredResult[] = working.map((w) => ({

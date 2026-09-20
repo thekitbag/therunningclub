@@ -27,7 +27,14 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * rule they were originally run to. The version stored on each record is what
  * makes that decision auditable afterwards.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V2';
+/**
+ * V3 replaced both points ladders with the club's own scoring, taken from the
+ * committee's workbook rather than inferred: finishing points are sized by the
+ * larger distance field instead of a fixed top of 10, and improvement points by
+ * how many runners had a comparable earlier result instead of by how many
+ * improved. Stored on every result so a rescore is a deliberate migration.
+ */
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V3';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;
