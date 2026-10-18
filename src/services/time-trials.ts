@@ -460,6 +460,18 @@ export async function recalculateSeason(seasonId: string, db?: Db): Promise<Seas
       }
     }
 
+    // A recalculation is also the migration boundary for stored version
+    // metadata. Keeping the season on an older age-grade version while its
+    // results use the current engine would make the published history
+    // internally contradictory.
+    await tx.ttSeason.update({
+      where: { id: seasonId },
+      data: {
+        scoringRulesVersion: scoring.scoringRulesVersion,
+        ageGradeVersion: AGE_GRADE_VERSION,
+      },
+    });
+
     return scoring;
   };
 

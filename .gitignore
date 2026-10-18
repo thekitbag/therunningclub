@@ -56,3 +56,5 @@ scripts/sql/sync-member-roster-2026.sql
 # named members. The public site keeps these behind SITE_PASSCODE, so they do
 # not belong in a public repository either.
 data/
+!/src/domain/scoring/age-grade/data/
+!/src/domain/scoring/age-grade/data/*.ts
