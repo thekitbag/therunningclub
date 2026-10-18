@@ -10,22 +10,25 @@ import {
   roundToTwoDecimals,
 } from '../age-grade';
 import {
-  FEMALE_ROAD_STANDARDS_2015,
-  MALE_ROAD_STANDARDS_2015,
-} from '../age-grade/data/wma-road-2015';
+  AGE_FACTOR_DISTANCES_METRES,
+  FEMALE_OPEN_CLASS_STANDARDS_2025,
+  FEMALE_ROAD_FACTORS_2025,
+  MALE_OPEN_CLASS_STANDARDS_2025,
+  MALE_ROAD_FACTORS_2025,
+} from '../age-grade/data/alan-jones-road-2025';
 
 const utc = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
-describe('vendored WMA 2015 road standards', () => {
+describe('vendored Alan Jones 2025 road factors', () => {
   it('covers every single year of age from 5 to 100 for both categories', () => {
-    for (const table of [MALE_ROAD_STANDARDS_2015, FEMALE_ROAD_STANDARDS_2015]) {
+    for (const table of [MALE_ROAD_FACTORS_2025, FEMALE_ROAD_FACTORS_2025]) {
       for (let age = MIN_TABLE_AGE; age <= MAX_TABLE_AGE; age += 1) {
         const row = table[age];
         expect(row, `missing age ${age}`).toBeDefined();
         expect(row).toHaveLength(4);
         for (const value of row as readonly number[]) {
-          expect(Number.isInteger(value)).toBe(true);
           expect(value).toBeGreaterThan(0);
+          expect(value).toBeLessThanOrEqual(1);
         }
       }
       expect(Object.keys(table)).toHaveLength(MAX_TABLE_AGE - MIN_TABLE_AGE + 1);
@@ -33,35 +36,23 @@ describe('vendored WMA 2015 road standards', () => {
   });
 
   it('matches published spot values from the source workbooks', () => {
-    // Sampled directly from the "AgeStdSec" worksheets. These pin the vendored
-    // copy to its source: a corrupted regeneration would break here first.
-    expect(MALE_ROAD_STANDARDS_2015[40]).toEqual([823, 990, 1328, 1663]);
-    expect(FEMALE_ROAD_STANDARDS_2015[40]).toEqual([910, 1101, 1484, 1874]);
-    expect(MALE_ROAD_STANDARDS_2015[5]).toEqual([1286, 1555, 2100, 2647]);
-    expect(FEMALE_ROAD_STANDARDS_2015[100]).toEqual([4641, 6099, 9524, 13736]);
+    // Sampled directly from the "Age Facctors" worksheets. These pin the
+    // vendored copy to its source: a corrupted regeneration would break here.
+    expect(AGE_FACTOR_DISTANCES_METRES).toEqual([5000, 6000, 6437.376, 8000]);
+    expect(MALE_OPEN_CLASS_STANDARDS_2025).toEqual([769, 930, 1000, 1255]);
+    expect(FEMALE_OPEN_CLASS_STANDARDS_2025).toEqual([834, 1010, 1087, 1365]);
+    expect(MALE_ROAD_FACTORS_2025[40]).toEqual([0.9475, 0.9517, 0.9534, 0.9584]);
+    expect(FEMALE_ROAD_FACTORS_2025[50]).toEqual([0.8592, 0.8652, 0.8676, 0.8748]);
+    expect(MALE_ROAD_FACTORS_2025[5]).toEqual([0.608, 0.5815, 0.5713, 0.5397]);
+    expect(FEMALE_ROAD_FACTORS_2025[100]).toEqual([0.1692, 0.1635, 0.1614, 0.1546]);
   });
 
-  it('grows monotonically with distance at every age', () => {
-    for (const table of [MALE_ROAD_STANDARDS_2015, FEMALE_ROAD_STANDARDS_2015]) {
-      for (let age = MIN_TABLE_AGE; age <= MAX_TABLE_AGE; age += 1) {
-        const row = table[age] as readonly number[];
-        for (let i = 1; i < row.length; i += 1) {
-          expect(row[i] as number, `age ${age}, distance index ${i}`).toBeGreaterThan(
-            row[i - 1] as number,
-          );
-        }
-      }
-    }
-  });
-
-  it('slows monotonically through the masters ages', () => {
-    // Standards improve into the athletic peak and then decline; from 35 upward
-    // every extra year must be slower, which is what age grading relies on.
-    for (const table of [MALE_ROAD_STANDARDS_2015, FEMALE_ROAD_STANDARDS_2015]) {
+  it('reduces the 5 km factor monotonically through the masters ages', () => {
+    for (const table of [MALE_ROAD_FACTORS_2025, FEMALE_ROAD_FACTORS_2025]) {
       for (let age = 35; age < MAX_TABLE_AGE; age += 1) {
         const current = (table[age] as readonly number[])[0] as number;
         const next = (table[age + 1] as readonly number[])[0] as number;
-        expect(next, `age ${age} -> ${age + 1}`).toBeGreaterThan(current);
+        expect(next, `age ${age} -> ${age + 1}`).toBeLessThan(current);
       }
     }
   });
@@ -91,22 +82,18 @@ describe('ageOnDate', () => {
 });
 
 describe('ageStandardSeconds', () => {
-  it('uses table-native standards directly', () => {
-    expect(ageStandardSeconds('MALE', 40, 5000)).toBe(823);
-    expect(ageStandardSeconds('MALE', 40, 6000)).toBe(990);
-    expect(ageStandardSeconds('MALE', 40, 8000)).toBe(1328);
+  it('derives table-native standards from the open standard and age factor', () => {
+    expect(ageStandardSeconds('MALE', 40, 5000)).toBeCloseTo(769 / 0.9475, 10);
+    expect(ageStandardSeconds('MALE', 40, 6000)).toBeCloseTo(930 / 0.9517, 10);
+    expect(ageStandardSeconds('MALE', 40, 8000)).toBeCloseTo(1255 / 0.9584, 10);
   });
 
-  it('interpolates 7.5 km logarithmically between the 5 km and 10 km standards', () => {
-    const weight = (Math.log(7500) - Math.log(5000)) / (Math.log(10000) - Math.log(5000));
-    const expected = 823 * (1 - weight) + 1663 * weight;
+  it('interpolates 7.5 km like RunBundle between 4 miles and 8 km', () => {
+    const weight = (7500 - 6437.376) / (8000 - 6437.376);
+    const openStandard = 1000 * (1 - weight) + 1255 * weight;
+    const ageFactor = 0.9534 * (1 - weight) + 0.9584 * weight;
 
-    expect(ageStandardSeconds('MALE', 40, 7500)).toBeCloseTo(expected, 9);
-    // Sits between the two neighbours and above the linear midpoint, because
-    // pace decays faster than distance grows.
-    expect(ageStandardSeconds('MALE', 40, 7500)).toBeGreaterThan(823);
-    expect(ageStandardSeconds('MALE', 40, 7500)).toBeLessThan(1663);
-    expect(ageStandardSeconds('MALE', 40, 7500)).toBeGreaterThan((823 + 1663) / 2 - 60);
+    expect(ageStandardSeconds('MALE', 40, 7500)).toBeCloseTo(openStandard / ageFactor, 10);
   });
 
   it('refuses ages outside the published tables instead of inventing a factor', () => {
@@ -125,12 +112,13 @@ describe('ageStandardSeconds', () => {
 
 describe('calculateAgeGrade', () => {
   it('scores 100% for a runner exactly on the standard', () => {
+    const standardSeconds = 769 / 0.9475;
     const outcome = calculateAgeGrade({
       category: 'MALE',
       dateOfBirth: utc('1986-01-01'),
       eventDate: utc('2026-01-01'),
       distanceMetres: 5000,
-      elapsedMilliseconds: 823 * 1000,
+      elapsedMilliseconds: standardSeconds * 1000,
     });
     expect(outcome.ageOnEventDate).toBe(40);
     expect(outcome.percent).toBeCloseTo(100, 10);
@@ -159,10 +147,49 @@ describe('calculateAgeGrade', () => {
       distanceMetres: 5000,
       elapsedMilliseconds: 1111 * 1000,
     });
-    // 823 / 1111 * 100 = 74.0774...
-    expect(outcome.percent).toBeCloseTo(74.07740774, 8);
-    expect(outcome.displayPercent).toBe(74.08);
+    expect(outcome.percent).toBeCloseTo(73.0521601, 8);
+    expect(outcome.displayPercent).toBe(73.05);
     expect(outcome.percent).not.toBe(outcome.displayPercent);
+  });
+
+  it('matches current RunBundle for a native road distance', () => {
+    const outcome = calculateAgeGrade({
+      category: 'FEMALE',
+      dateOfBirth: utc('1976-01-01'),
+      eventDate: utc('2026-01-01'),
+      distanceMetres: 5000,
+      elapsedMilliseconds: 20 * 60 * 1000,
+    });
+
+    expect(outcome.percent).toBeCloseTo(80.8891992551, 9);
+    expect(outcome.displayPercent).toBe(80.89);
+  });
+
+  it('matches current RunBundle for a male native road distance', () => {
+    const outcome = calculateAgeGrade({
+      category: 'MALE',
+      dateOfBirth: utc('1986-01-01'),
+      eventDate: utc('2026-01-01'),
+      distanceMetres: 5000,
+      elapsedMilliseconds: 20 * 60 * 1000,
+    });
+
+    expect(outcome.percent).toBeCloseTo(67.6341248901, 9);
+    expect(outcome.displayPercent).toBe(67.63);
+  });
+
+  it('matches current RunBundle for the club non-standard 7.5 km distance', () => {
+    const outcome = calculateAgeGrade({
+      category: 'FEMALE',
+      dateOfBirth: utc('1976-01-01'),
+      eventDate: utc('2026-01-01'),
+      distanceMetres: 7500,
+      elapsedMilliseconds: 30 * 60 * 1000,
+    });
+
+    expect(outcome.percent).toBeCloseTo(81.2513621145, 9);
+    expect(outcome.displayPercent).toBe(81.25);
+    expect(outcome.version).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
   });
 
   it('rejects unsupported distances and non-positive times', () => {

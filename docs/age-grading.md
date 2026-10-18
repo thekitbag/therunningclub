@@ -1,89 +1,110 @@
 # Age grading
 
-## What is used
+## Compatibility target
 
-The application uses the **WMA / USATF 2015 road-running age standards**,
-vendored into the repository at
-`src/domain/scoring/age-grade/data/wma-road-2015.ts` and versioned as
-`WMA_ROAD_2015_RMPAC_V1`.
+The application reproduces the road calculation used by RunBundle after its
+14 August 2025 update. That calculator uses the Alan Jones 2025 male and female
+road-running tables. The implementation is frozen and versioned as
+`ALAN_JONES_ROAD_2025_RUNBUNDLE_V1`.
 
-That edition is chosen because it was approved by both WMA and USATF, covers the
-road distances the club races, and publishes a standard for every single year of
-age rather than five-year bands.
+RunBundle is not called at runtime. Its public form is not an application API,
+and either its availability or its calculation can change. The required source
+values are vendored in
+`src/domain/scoring/age-grade/data/alan-jones-road-2025.ts`, so a published
+result remains reproducible offline.
 
-No external calculator is called at runtime. The standards are a static table in
-the bundle, so results are reproducible offline and cannot change because a
-third-party site changed.
+## Sources
 
-## Source
+The generated module contains open-class standards and single-age factors from
+the `Age Facctors` worksheets of:
 
-Extracted from the `AgeStdSec` worksheet of:
+- `2025 Files/MaleRoadStd2025.xlsx`
+- `2025 Files/FemaleRoadStd2025.xlsx`
 
-- `2015 Files/MaleRoadStd2015.xlsx`
-- `2015 Files/FemaleRoadStd2015.xlsx`
+in <https://github.com/AlanLyttonJones/Age-Grade-Tables>. The source repository
+is licensed CC0-1.0. Source SHA-256 hashes are recorded in the generated module.
 
-in <https://github.com/AlanLyttonJones/Age-Grade-Tables>, which is the
-distribution channel the scoring specification points at.
+RunBundle documents its calculation at
+<https://runbundle.com/tools/age-grading-calculator> and announced its move to
+the 2025 road tables on 14 August 2025 at <https://runbundle.com/news/>.
 
-Methodology background:
+## Vendored values
 
-- <https://world-masters-athletics.org/wp-content/uploads/2018/02/Road_Age_Standards_WMA_2010-Explanation.pdf>
-- <https://www.howardgrubb.co.uk/athletics/wmaroad15.html>
+For every integer age from 5 through 100 and for both source-table categories,
+the application stores the factors needed for:
 
-## What is stored
-
-Only the four distances the club needs, in whole seconds, for ages 5–100:
-
-```
-[ 5 km, 6 km, 8 km, 10 km ]
-```
-
-5 km, 6 km and 8 km are table-native and used directly. 10 km is retained solely
-so the winter three-lap distance of 7.5 km can be interpolated.
-
-## The 7.5 km interpolation
-
-7.5 km is not a table distance. The standard is interpolated between the 5 km
-and 10 km standards on a **logarithmic** distance scale, which reflects how race
-pace decays with distance far better than a linear blend:
-
-```
-u         = (ln 7500 − ln 5000) / (ln 10000 − ln 5000)
-standard  = standard₅ₖ × (1 − u) + standard₁₀ₖ × u
+```text
+[5 km, 6 km, 4 miles, 8 km]
 ```
 
-## Calculation
+It also stores the corresponding male and female open-class standards. The
+workbooks' `AgeStanSec` values are deliberately not used: those cells are
+rounded to whole seconds, while RunBundle calculates an age standard from the
+open standard and factor.
 
-1. Age in completed years on the round date.
-2. Look up the standard for that category, age and distance.
-3. `ageGradePercent = standardSeconds / actualSeconds × 100`.
+For table-native 5 km, 6 km, and 8 km results:
 
-Full precision is kept for ranking; only the display is rounded, to two decimal
-places. Rounding before ranking would create artificial ties in the improvement
-order — the reference round has two improvements one hundredth of a point apart.
+```text
+age standard = open-class standard / age factor
+age grade    = age standard / actual time * 100
+```
 
-## Ages outside the table
+## RunBundle-compatible 7.5 km calculation
 
-A runner younger than 5 or older than 100 cannot be graded. Publication of that
-round is **blocked with a clear administrator error** rather than inventing a
-factor. The dashboard surfaces the problem before the publish button is pressed.
+RunBundle treats 7.5 km as a non-standard road distance and linearly
+interpolates between the closest source-table distances: 4 miles and 8 km.
+Both inputs to the calculation are interpolated independently.
+
+```text
+lower distance = 6,437.376 m
+upper distance = 8,000 m
+u = (7,500 - lower distance) / (upper distance - lower distance)
+
+open standard = open standard at 4 miles * (1 - u)
+              + open standard at 8 km    * u
+
+age factor = age factor at 4 miles * (1 - u)
+           + age factor at 8 km    * u
+
+age standard = open standard / age factor
+age grade    = age standard / actual time * 100
+```
+
+For example, RunBundle returns `81.25%` for a 50-year-old female road runner
+completing 7.5 km in 30:00. The application calculates the unrounded value as
+approximately `81.2513621145%` and displays `81.25%`.
+
+## Age and precision
+
+Age is the runner's completed age on the round date. Dates of birth and round
+dates are calendar dates, so the calculation uses their UTC year, month, and
+day components without timezone conversion.
+
+The calculation retains full precision for improvement comparisons and rounds
+half up to two decimal places only for display. Rounding a percentage before
+ranking improvements would create artificial ties.
+
+A runner younger than 5 or older than 100 cannot be graded. Publication is
+blocked with a clear administrator error rather than clamping or inventing a
+factor.
 
 ## Regenerating the table
 
-The vendored file is generated, not hand-edited — correcting a value by hand
-would silently desynchronise it from the published source.
+Download the two source workbooks, then run:
 
-To regenerate, download the two workbooks above and extract the `AgeStdSec`
-worksheet columns for 5 km, 6 km, 8 km and 10 km, ages 5–100, into the same
-structure. The tests in `src/domain/scoring/__tests__/age-grade.test.ts` pin the
-result: they assert completeness for every age, spot values sampled directly
-from the source, monotonicity with distance, and monotonicity with age through
-the masters range.
+```bash
+npm run gen:age-grade -- /path/to/MaleRoadStd2025.xlsx /path/to/FemaleRoadStd2025.xlsx
+```
 
-## Changing edition
+The generator reads the workbooks with the system `unzip` command, checks that
+every age from 5 through 100 is present, and rewrites the generated TypeScript
+module. Review the source hashes and generated diff, then run the age-grading
+tests. Pass `--stdout` to inspect output without writing the module.
 
-Adopting the 2020 or 2025 standards is a **deliberate product decision and a
-data migration**, not a dependency bump. Every published age grade and every
-improvement point derived from it would change. The version identifier stored on
-each result exists so that history can be interpreted correctly if that ever
-happens.
+## Changing the compatibility version
+
+A future RunBundle or source-table change is a deliberate product decision and
+data migration, not a routine dependency update. Use `scripts/rescore-season.ts`
+to preview each affected season, review changes to age grades and improvement
+points, and then apply a full-season recalculation. A season and all its results
+must use the same age-grade version.

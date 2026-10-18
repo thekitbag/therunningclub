@@ -1,11 +1,13 @@
 import {
-  AGE_STANDARD_DISTANCES_METRES,
-  FEMALE_ROAD_STANDARDS_2015,
-  MALE_ROAD_STANDARDS_2015,
+  AGE_FACTOR_DISTANCES_METRES,
+  FEMALE_OPEN_CLASS_STANDARDS_2025,
+  FEMALE_ROAD_FACTORS_2025,
+  MALE_OPEN_CLASS_STANDARDS_2025,
+  MALE_ROAD_FACTORS_2025,
   MAX_TABLE_AGE,
   MIN_TABLE_AGE,
-  type AgeStandardRow,
-} from './data/wma-road-2015';
+  type AgeFactorRow,
+} from './data/alan-jones-road-2025';
 import type { ScoringCategory } from '../types';
 
 /**
@@ -14,21 +16,21 @@ import type { ScoringCategory } from '../types';
  * future table edition is a deliberate migration rather than a silent rewrite of
  * published history.
  */
-export const AGE_GRADE_VERSION = 'WMA_ROAD_2015_RMPAC_V1';
+export const AGE_GRADE_VERSION = 'ALAN_JONES_ROAD_2025_RUNBUNDLE_V1';
 
 export { MIN_TABLE_AGE, MAX_TABLE_AGE };
 
-const FIVE_KM = 5000;
-const TEN_KM = 10000;
+const FOUR_MILES = 6437.376;
+const SEVEN_POINT_FIVE_KM = 7500;
+const EIGHT_KM = 8000;
 
 /**
- * `7.5 km` is not a table-native distance. The published methodology
- * interpolates between neighbouring standards on a logarithmic distance scale,
- * which reflects how race pace decays with distance far better than a linear
- * blend would.
+ * RunBundle treats `7.5 km` as a non-standard road distance. It linearly
+ * interpolates between the closest distances in the source table: 4 miles and
+ * 8 km. Its result depends on interpolating both the open standard and the age
+ * factor, not a rounded age-standard time.
  */
-const LOG_INTERPOLATION_WEIGHT =
-  (Math.log(7500) - Math.log(FIVE_KM)) / (Math.log(TEN_KM) - Math.log(FIVE_KM));
+const RUNBUNDLE_7_5_KM_WEIGHT = (SEVEN_POINT_FIVE_KM - FOUR_MILES) / (EIGHT_KM - FOUR_MILES);
 
 /** Distances the club actually races, in metres. */
 export const SUPPORTED_DISTANCES_METRES = [5000, 6000, 7500, 8000] as const;
@@ -50,19 +52,27 @@ export class AgeGradeError extends Error {
   }
 }
 
-function standardsFor(category: ScoringCategory): Readonly<Record<number, AgeStandardRow>> {
-  return category === 'MALE' ? MALE_ROAD_STANDARDS_2015 : FEMALE_ROAD_STANDARDS_2015;
+function factorsFor(category: ScoringCategory): Readonly<Record<number, AgeFactorRow>> {
+  return category === 'MALE' ? MALE_ROAD_FACTORS_2025 : FEMALE_ROAD_FACTORS_2025;
+}
+
+function openStandardsFor(category: ScoringCategory): AgeFactorRow {
+  return category === 'MALE' ? MALE_OPEN_CLASS_STANDARDS_2025 : FEMALE_OPEN_CLASS_STANDARDS_2025;
 }
 
 function tableIndexFor(metres: number): number {
-  const index = (AGE_STANDARD_DISTANCES_METRES as readonly number[]).indexOf(metres);
+  const index = (AGE_FACTOR_DISTANCES_METRES as readonly number[]).indexOf(metres);
   if (index < 0) {
     throw new AgeGradeError(
       'UNSUPPORTED_DISTANCE',
-      `No vendored age standard exists for ${metres} m.`,
+      `No vendored age factor exists for ${metres} m.`,
     );
   }
   return index;
+}
+
+function interpolate(lower: number, upper: number, weight: number): number {
+  return lower * (1 - weight) + upper * weight;
 }
 
 /**
@@ -91,7 +101,8 @@ export function ageOnDate(dateOfBirth: Date, eventDate: Date): number {
 }
 
 /**
- * The age standard, in seconds, for a category, age and distance.
+ * The RunBundle-compatible age standard, in seconds, for a category, age and
+ * road distance.
  *
  * Throws rather than clamping when the age falls outside the published tables:
  * the specification requires publication to be blocked with a clear error.
@@ -104,24 +115,35 @@ export function ageStandardSeconds(
   if (!Number.isInteger(age) || age < MIN_TABLE_AGE || age > MAX_TABLE_AGE) {
     throw new AgeGradeError(
       'AGE_OUT_OF_RANGE',
-      `Age ${age} is outside the published WMA 2015 road tables (${MIN_TABLE_AGE}-${MAX_TABLE_AGE}).`,
+      `Age ${age} is outside the published Alan Jones 2025 road tables (${MIN_TABLE_AGE}-${MAX_TABLE_AGE}).`,
     );
   }
 
-  const table = standardsFor(category);
-  const row = table[age];
+  const factorRow = factorsFor(category)[age];
   /* c8 ignore next 3 -- guarded by the range check above; kept as a hard invariant. */
-  if (!row) {
-    throw new AgeGradeError('AGE_OUT_OF_RANGE', `No standard row for age ${age}.`);
+  if (!factorRow) {
+    throw new AgeGradeError('AGE_OUT_OF_RANGE', `No factor row for age ${age}.`);
+  }
+  const openStandards = openStandardsFor(category);
+
+  if (distanceMetres === SEVEN_POINT_FIVE_KM) {
+    const lowerIndex = tableIndexFor(FOUR_MILES);
+    const upperIndex = tableIndexFor(EIGHT_KM);
+    const openStandard = interpolate(
+      openStandards[lowerIndex] as number,
+      openStandards[upperIndex] as number,
+      RUNBUNDLE_7_5_KM_WEIGHT,
+    );
+    const ageFactor = interpolate(
+      factorRow[lowerIndex] as number,
+      factorRow[upperIndex] as number,
+      RUNBUNDLE_7_5_KM_WEIGHT,
+    );
+    return openStandard / ageFactor;
   }
 
-  if (distanceMetres === 7500) {
-    const fiveKm = row[tableIndexFor(FIVE_KM)] as number;
-    const tenKm = row[tableIndexFor(TEN_KM)] as number;
-    return fiveKm * (1 - LOG_INTERPOLATION_WEIGHT) + tenKm * LOG_INTERPOLATION_WEIGHT;
-  }
-
-  return row[tableIndexFor(distanceMetres)] as number;
+  const index = tableIndexFor(distanceMetres);
+  return (openStandards[index] as number) / (factorRow[index] as number);
 }
 
 export interface AgeGradeInput {

@@ -13,6 +13,7 @@ import {
   computeSeasonScoring,
   previewRoundPublication,
   publishRound,
+  recalculateSeason,
   saveRoundResults,
   unpublishRound,
   updateRound,
@@ -473,9 +474,38 @@ describe('scoring versions', () => {
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
     expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
-    expect(stored.ageGradeVersion).toBe('WMA_ROAD_2015_RMPAC_V1');
+    expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
     expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
+  });
+
+  it('migrates both season and result version metadata during recalculation', async () => {
+    const { season } = await setUp();
+    const runner = await createRunnerRecord({
+      givenName: 'Version',
+      familyName: 'Runner',
+      dateOfBirth: '1970-01-01',
+      category: 'FEMALE',
+    });
+    const round = await createRound(season.id, 1, '2025-10-07');
+    await saveRoundResults(round.id, [
+      { runnerId: runner.id, distanceChoice: 'THREE_LAP', time: '35:00' },
+    ]);
+    await prisma.ttSeason.update({
+      where: { id: season.id },
+      data: { ageGradeVersion: 'WMA_ROAD_2015_RMPAC_V1' },
+    });
+    await prisma.ttResult.updateMany({
+      where: { roundId: round.id },
+      data: { ageGradeVersion: 'WMA_ROAD_2015_RMPAC_V1' },
+    });
+
+    await recalculateSeason(season.id);
+
+    const migratedSeason = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
+    const migratedResult = await prisma.ttResult.findFirstOrThrow({ where: { roundId: round.id } });
+    expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
+    expect(migratedResult.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
   });
 });

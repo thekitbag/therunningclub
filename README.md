@@ -46,8 +46,9 @@ scores 1, the second 2. Seven qualifying races make a runner eligible, and their
 seven lowest scores are summed, so there is no drop score until an eighth race.
 Ties stay tied; there is no tie-break in v1.
 
-Age grading uses the WMA/USATF 2015 road standards, vendored and versioned —
-see [`docs/age-grading.md`](docs/age-grading.md).
+Age grading vendors the Alan Jones 2025 road factors and reproduces RunBundle's
+road calculation, including its treatment of 7.5 km. See
+[`docs/age-grading.md`](docs/age-grading.md).
 
 ## Architecture
 
@@ -107,8 +108,8 @@ npm run bootstrap:admin
 ## Testing
 
 ```bash
-npm test                  # 145 unit tests: scoring, age grading, config, security
-npm run test:integration  # 100 integration tests against a real database
+npm test                  # 150 unit tests: scoring, age grading, config, security
+npm run test:integration  # 101 integration tests against a real database
 npm run test:e2e          # 104 browser tests on desktop and phone viewports
 npm run verify            # everything except the browser suite
 ```

@@ -11,6 +11,9 @@
  *  2. The scoring rules changed to RMPAC_SCORING_V3 (see
  *     docs/scoring-rules-2026.md). Results stored under V2 carry the old
  *     ladders until they are replayed.
+ *  3. The age-grade engine changed from the 2015 tables to the frozen
+ *     RunBundle-compatible Alan Jones 2025 calculation. Every affected age
+ *     grade and improvement ranking must be replayed as one season.
  *
  * It calls `recalculateSeason` from src/services/time-trials.ts — the same
  * function the admin screens call. Nothing here computes a score itself.
@@ -29,7 +32,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma';
 import { computeSeasonScoring, recalculateSeason } from '../src/services/time-trials';
-import { formatElapsedTime } from '../src/domain/scoring';
+import { AGE_GRADE_VERSION, formatElapsedTime } from '../src/domain/scoring';
 
 function describeTarget(connectionString: string): string {
   let url: URL;
@@ -62,7 +65,14 @@ async function main(): Promise<void> {
   try {
     const season = await prisma.ttSeason.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true, type: true, scoringRulesVersion: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        type: true,
+        scoringRulesVersion: true,
+        ageGradeVersion: true,
+      },
     });
     if (!season) {
       const all = await prisma.ttSeason.findMany({ select: { slug: true, name: true } });
@@ -76,7 +86,9 @@ async function main(): Promise<void> {
     }
 
     console.log(
-      `Season:   ${season.name} (${season.slug}), stored as ${season.scoringRulesVersion}`,
+      `Season:   ${season.name} (${season.slug})\n` +
+        `Rules:    ${season.scoringRulesVersion}\n` +
+        `Age grade: ${season.ageGradeVersion}`,
     );
 
     const before = await prisma.ttResult.findMany({
@@ -176,8 +188,9 @@ async function main(): Promise<void> {
         entityType: 'TtSeason',
         entityId: season.id,
         summary: {
-          reason: 'Real dates of birth applied and scoring rules updated',
+          reason: 'Age grades and scoring rules recalculated with the current versioned engines',
           scoringRulesVersion: applied.scoringRulesVersion,
+          ageGradeVersion: AGE_GRADE_VERSION,
           resultsChanged: changes.length,
         },
       },
