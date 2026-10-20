@@ -55,7 +55,7 @@ export function priorForImprovement(
 
   return {
     runnerId: input.runnerId,
-    distanceChoice: input.distanceChoice,
+    occurredOn: new Date(roundDate.getTime() - 24 * 60 * 60 * 1000),
     roundOrdinal,
     ageGradePercent: current.percent - improvement,
   };

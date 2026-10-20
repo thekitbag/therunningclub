@@ -79,8 +79,8 @@ export function PublicationPanel({
           <div className="notice notice--warn">
             <p className="notice__title">Later rounds will change</p>
             <p>
-              Publishing this round adds it to the comparison chain, so improvement points in the
-              rounds below are recalculated:
+              Publishing this round adds it to the cross-season comparison chain, so improvement
+              points in the rounds below are recalculated:
             </p>
             <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
               {impact.affectedLaterRounds.map((round) => (

@@ -89,6 +89,28 @@ The calculation retains full precision for improvement comparisons and rounds
 half up to two decimal places only for display. Rounding a percentage before
 ranking improvements would create artificial ties.
 
+## Previous age grades and opening baselines
+
+Each result compares with the runner's most recent earlier published age grade
+across the complete result history. The chain crosses Summer/Winter boundaries
+and two-/three-lap choices because the age-grade percentage is the normalized
+comparison. Draft and chronologically later results never enter the chain.
+
+When the previous result predates the application data, an administrator can
+open **Admin → Runners → Import previous age grades** and upload a CSV containing
+one opening value per runner. The baseline has a source date and is used only
+until a later published result exists. The smallest supported file is:
+
+```csv
+Runner name,Previous age grade
+"Crocker, Mike",55.97%
+```
+
+`First Last` names are also accepted. A `Runner ID` column may replace the name
+for an unambiguous export/import workflow. The import validates and matches the
+entire file before writing anything, then atomically upserts the baselines and
+recalculates every affected season in chronological order.
+
 A runner younger than 5 or older than 100 cannot be graded. Publication is
 blocked with a clear administrator error rather than clamping or inventing a
 factor.
@@ -110,9 +132,9 @@ tests. Pass `--stdout` to inspect output without writing the module.
 
 A future RunBundle or source-table change is a deliberate product decision and
 data migration, not a routine dependency update. Use `scripts/rescore-season.ts`
-to preview each affected season, review changes to age grades and improvement
-points, and then apply a full-season recalculation. A season and all its results
-must use the same age-grade version.
+to preview the first affected season, review changes to age grades and
+improvement points, and then apply the chronological recalculation cascade. A
+season and all its results must use the same age-grade version.
 
 The same command migrates every targeted summer season from the old nominal
 6,000 m / 8,000 m values to the measured 5,922 m / 7,966 m courses. The dry run

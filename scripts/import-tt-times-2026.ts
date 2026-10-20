@@ -53,7 +53,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma';
-import { recalculateSeason } from '../src/services/time-trials';
+import { recalculateSeasonAndFollowing } from '../src/services/time-trials';
 import { normaliseSearchName } from '../src/services/runners';
 import {
   SEASON_DISTANCES,
@@ -381,7 +381,7 @@ async function main(): Promise<void> {
       }
 
       // The application's own function, not a copy of it.
-      return recalculateSeason(season.id, tx, SEASON_DISTANCES.SUMMER);
+      return recalculateSeasonAndFollowing(season.id, tx, SEASON_DISTANCES.SUMMER);
     });
 
     await prisma.auditEvent.create({
@@ -392,7 +392,7 @@ async function main(): Promise<void> {
         summary: {
           source: 'RMPAC Summer Time Trial Results - 25 August 2026',
           rounds: plan.map((p) => ({ month: p.month, results: p.entries.length })),
-          note: 'Raw times imported by script; all derived scores produced by recalculateSeason.',
+          note: 'Raw times imported by script; all derived scores produced by the chronological recalculation cascade.',
         },
       },
     });

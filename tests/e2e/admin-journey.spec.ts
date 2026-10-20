@@ -74,6 +74,25 @@ test('warns about a possible duplicate before creating one', async ({ page }) =>
   await expect(page.getByText(/already ha[sv]e? this name/)).toContainText('Nia Newcomer');
 });
 
+test('uploads a historical opening age grade', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/admin/runners');
+
+  await page.getByLabel('Baseline date').fill('2025-09-01');
+  await page.getByLabel('Source description').fill('Previous club workbook');
+  await page.getByLabel('CSV file').setInputFiles({
+    name: 'opening-age-grades.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Runner name,Previous age grade\nNia Newcomer,58.25%\n'),
+  });
+  await page.getByRole('button', { name: 'Import and recalculate' }).click();
+
+  await expect(page.getByText(/Imported 1 opening age grade/)).toBeVisible();
+  const nia = page.getByRole('row', { name: /Nia Newcomer/ });
+  await expect(nia).toContainText('58.25%');
+  await expect(nia).toContainText('2025-09-01');
+});
+
 test('enters results, previews the scores, and publishes the draft round', async ({ page }) => {
   await signIn(page);
 

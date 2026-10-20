@@ -18,6 +18,7 @@ const TABLES = [
   'tt_result',
   'tt_round',
   'tt_season',
+  'tt_age_grade_baseline',
   'championship_result',
   'race',
   'championship',

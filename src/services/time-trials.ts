@@ -12,6 +12,7 @@ import {
   parseElapsedTime,
   scoreSeason,
   type DistanceChoice,
+  type PriorResultInput,
   type SeasonDistances,
   type SeasonScoring,
   type SeasonRoundInput,
@@ -24,10 +25,10 @@ import { ServiceError, conflict, fieldErrorsFrom, notFound, validation } from '.
  *
  * The central design decision here: derived scoring columns are *never* patched
  * in place. Any change to a season's inputs triggers a full replay of the pure
- * domain scorer across the whole season, in ordinal order, inside one
- * transaction. Recalculating everything is cheap at club scale (six rounds, a
- * few dozen runners) and removes the entire class of bug where an edit updates
- * one row and leaves a dependent row stale.
+ * domain scorer across the affected season tail, in chronological order,
+ * inside one transaction. Recalculating everything is cheap at club scale and
+ * removes the entire class of bug where an edit updates one row and leaves a
+ * dependent row or later season stale.
  */
 
 // ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ export async function updateRound(roundId: string, input: RoundInput) {
 
   // Changing a round's date or position moves it in the improvement chain, so
   // the whole season has to be replayed.
-  await recalculateSeason(round.seasonId);
+  await recalculateSeasonAndFollowing(round.seasonId);
 
   await recordAuditEvent({
     actorId: actor.id,
@@ -342,7 +343,7 @@ export async function saveRoundResults(
       });
     }
 
-    await recalculateSeason(round.seasonId, tx);
+    await recalculateSeasonAndFollowing(round.seasonId, tx);
 
     await recordAuditEvent(
       {
@@ -371,7 +372,12 @@ export async function saveRoundResults(
  */
 export async function computeSeasonScoring(
   seasonId: string,
-  options: { publishedOnly: boolean; distances?: SeasonDistances },
+  options: {
+    publishedOnly: boolean;
+    distances?: SeasonDistances;
+    /** Preview one draft as if published without writing its state. */
+    assumePublishedRoundId?: string;
+  },
   db: Db = prisma,
 ): Promise<SeasonScoring> {
   const season = await db.ttSeason.findUnique({
@@ -397,8 +403,9 @@ export async function computeSeasonScoring(
     roundId: round.id,
     ordinal: round.ordinal,
     date: round.date,
-    published: round.state === 'PUBLISHED',
+    published: round.state === 'PUBLISHED' || round.id === options.assumePublishedRoundId,
     entries: round.results.map((result) => ({
+      resultId: result.id,
       runnerId: result.runnerId,
       category: result.runner.category,
       dateOfBirth: result.runner.dateOfBirth,
@@ -412,11 +419,69 @@ export async function computeSeasonScoring(
     THREE_LAP: season.threeLapMetres,
   };
 
+  const includedRounds = rounds.filter((round) => !options.publishedOnly || round.published);
+  const firstRoundDate = includedRounds.reduce<Date | null>(
+    (earliest, round) => (earliest === null || round.date < earliest ? round.date : earliest),
+    null,
+  );
+  const runnerIds = [
+    ...new Set(includedRounds.flatMap((round) => round.entries.map((entry) => entry.runnerId))),
+  ];
+  const priorResults = firstRoundDate
+    ? await loadPriorAgeGrades(runnerIds, firstRoundDate, db)
+    : [];
+
   return scoreSeason({
     distances,
     rounds,
+    priorResults,
     publishedOnly: options.publishedOnly,
   });
+}
+
+/** Loads the app-managed history and optional opening baseline before a season. */
+async function loadPriorAgeGrades(
+  runnerIds: readonly string[],
+  before: Date,
+  db: Db,
+): Promise<PriorResultInput[]> {
+  if (runnerIds.length === 0) return [];
+
+  const [results, baselines] = await Promise.all([
+    db.ttResult.findMany({
+      where: {
+        runnerId: { in: [...runnerIds] },
+        ageGradePercent: { not: null },
+        round: { state: 'PUBLISHED', date: { lt: before } },
+      },
+      select: {
+        id: true,
+        runnerId: true,
+        ageGradePercent: true,
+        round: { select: { date: true, ordinal: true } },
+      },
+    }),
+    db.ttAgeGradeBaseline.findMany({
+      where: { runnerId: { in: [...runnerIds] }, recordedOn: { lt: before } },
+      select: { runnerId: true, ageGradePercent: true, recordedOn: true },
+    }),
+  ]);
+
+  return [
+    ...baselines.map((baseline) => ({
+      runnerId: baseline.runnerId,
+      occurredOn: baseline.recordedOn,
+      roundOrdinal: null,
+      ageGradePercent: Number(baseline.ageGradePercent),
+    })),
+    ...results.map((result) => ({
+      runnerId: result.runnerId,
+      occurredOn: result.round.date,
+      roundOrdinal: result.round.ordinal,
+      resultId: result.id,
+      ageGradePercent: Number(result.ageGradePercent),
+    })),
+  ];
 }
 
 /**
@@ -449,6 +514,7 @@ export async function recalculateSeason(
             tiedOnTime: result.tiedOnTime,
             ageGradePercent: toDecimal(result.ageGradePercent),
             ageOnRoundDate: result.ageOnRoundDate,
+            previousResultId: result.previousResultId,
             previousAgeGradePercent: toDecimal(result.previousAgeGradePercent),
             previousRoundOrdinal: result.previousRoundOrdinal,
             improvement: toDecimal(result.improvement),
@@ -463,9 +529,15 @@ export async function recalculateSeason(
                 result.distanceChoice === 'TWO_LAP' ? 'two-lap' : 'three-lap'
               } field`,
               improvementBasis:
-                result.previousRoundOrdinal === null
-                  ? 'No comparable earlier result at this distance in this season'
-                  : `Compared with round ${result.previousRoundOrdinal}`,
+                result.previousAgeGradePercent === null
+                  ? 'No earlier published age grade or opening baseline'
+                  : result.previousResultId === null
+                    ? 'Compared with historical opening age grade'
+                    : `Compared with previous published result${
+                        result.previousRoundOrdinal === null
+                          ? ''
+                          : ` (round ${result.previousRoundOrdinal})`
+                      }`,
               improverCount: round.improverCount,
             },
           },
@@ -488,6 +560,47 @@ export async function recalculateSeason(
     });
 
     return scoring;
+  };
+
+  return db ? run(db) : prisma.$transaction((tx) => run(tx));
+}
+
+/**
+ * Replays a season and every later season in order.
+ *
+ * The previous-age-grade chain no longer stops at a season boundary. A change
+ * in one season can therefore alter the first comparison in the next, which
+ * can alter that round's shared points ladder and all downstream standings.
+ */
+export async function recalculateSeasonAndFollowing(
+  seasonId: string,
+  db?: Db,
+  distances?: SeasonDistances,
+): Promise<SeasonScoring> {
+  const run = async (tx: Db) => {
+    const anchor = await tx.ttSeason.findUnique({
+      where: { id: seasonId },
+      select: { id: true, startDate: true },
+    });
+    if (!anchor) throw notFound('That season');
+
+    const seasons = await tx.ttSeason.findMany({
+      where: { startDate: { gte: anchor.startDate } },
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+
+    let target: SeasonScoring | null = null;
+    for (const season of seasons) {
+      const scoring = await recalculateSeason(
+        season.id,
+        tx,
+        season.id === seasonId ? distances : undefined,
+      );
+      if (season.id === seasonId) target = scoring;
+    }
+    if (!target) throw notFound('That season');
+    return target;
   };
 
   return db ? run(db) : prisma.$transaction((tx) => run(tx));
@@ -535,7 +648,10 @@ export async function previewRoundPublication(roundId: string): Promise<Publicat
   if (!round) throw notFound('That round');
 
   const before = await computeSeasonScoring(round.seasonId, { publishedOnly: true });
-  const after = await computeSeasonScoring(round.seasonId, { publishedOnly: false });
+  const after = await computeSeasonScoring(round.seasonId, {
+    publishedOnly: true,
+    assumePublishedRoundId: round.id,
+  });
 
   const runnerNames = await loadRunnerNames(
     after.rounds.flatMap((r) => r.results.map((result) => result.runnerId)),
@@ -635,7 +751,7 @@ export async function publishRound(roundId: string) {
 
     // Publishing changes which rounds feed the improvement chain, so the season
     // is replayed inside the same transaction.
-    await recalculateSeason(round.seasonId, tx);
+    await recalculateSeasonAndFollowing(round.seasonId, tx);
 
     await recordAuditEvent(
       {
@@ -664,7 +780,7 @@ export async function unpublishRound(roundId: string) {
       data: { state: 'DRAFT', publishedAt: null, publishedById: null },
     });
 
-    await recalculateSeason(round.seasonId, tx);
+    await recalculateSeasonAndFollowing(round.seasonId, tx);
 
     await recordAuditEvent(
       {

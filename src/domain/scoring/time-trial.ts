@@ -32,6 +32,8 @@ export function winnerFinishingPoints(twoLapFinishers: number, threeLapFinishers
 }
 
 export interface RoundEntryInput {
+  /** Present for persisted results so later comparisons can retain provenance. */
+  readonly resultId?: string;
   readonly runnerId: string;
   readonly category: ScoringCategory;
   /** Private. Used only to derive the age standard; never leaves the domain. */
@@ -40,12 +42,12 @@ export interface RoundEntryInput {
   readonly elapsedMilliseconds: number;
 }
 
-/** An earlier published result in the same season, used for improvement. */
+/** An earlier age grade, from a published result or historical opening baseline. */
 export interface PriorResultInput {
   readonly runnerId: string;
-  readonly distanceChoice: DistanceChoice;
-  /** Round ordinal 1-6. Comparison always looks strictly backwards. */
-  readonly roundOrdinal: number;
+  readonly occurredOn: Date;
+  /** Null for an imported opening baseline rather than an app-managed result. */
+  readonly roundOrdinal: number | null;
   readonly resultId?: string;
   readonly ageGradePercent: number;
 }
@@ -56,7 +58,7 @@ export interface RoundScoringInput {
   readonly roundOrdinal: number;
   readonly roundDate: Date;
   readonly entries: readonly RoundEntryInput[];
-  /** Every published result earlier in this season, in any order. */
+  /** Earlier published results and opening baselines, in any order. */
   readonly priorResults: readonly PriorResultInput[];
 }
 
@@ -69,6 +71,7 @@ export interface ScoringProblem {
 }
 
 export interface ScoredResult {
+  readonly resultId: string | null;
   readonly runnerId: string;
   readonly category: ScoringCategory;
   readonly distanceChoice: DistanceChoice;
@@ -85,7 +88,7 @@ export interface ScoredResult {
   readonly ageGradeDisplayPercent: number | null;
   readonly ageOnRoundDate: number | null;
 
-  /** The comparable earlier result in this season at this distance, if any. */
+  /** The runner's most recent earlier age grade, regardless of season or course. */
   readonly previousAgeGradePercent: number | null;
   readonly previousResultId: string | null;
   readonly previousRoundOrdinal: number | null;
@@ -211,11 +214,10 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
   }
 
   // --- Improvement, ranked across both distances and both categories -------
-  const priorIndex = indexPriorResults(input.priorResults, input.roundOrdinal);
+  const priorIndex = indexPriorResults(input.priorResults, input.roundDate);
 
   for (const w of working) {
-    const key = comparableKey(w.entry.runnerId, w.entry.distanceChoice);
-    const previous = priorIndex.get(key) ?? null;
+    const previous = priorIndex.get(w.entry.runnerId) ?? null;
     w.previous = previous;
 
     if (previous && w.ageGradePercent !== null) {
@@ -246,6 +248,7 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
   }
 
   const results: ScoredResult[] = working.map((w) => ({
+    resultId: w.entry.resultId ?? null,
     runnerId: w.entry.runnerId,
     category: w.entry.category,
     distanceChoice: w.entry.distanceChoice,
@@ -277,28 +280,22 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
   };
 }
 
-function comparableKey(runnerId: string, choice: DistanceChoice): string {
-  return `${runnerId}::${choice}`;
-}
-
 /**
- * Picks, for each runner and distance, the latest result strictly before the
- * round being scored.
+ * Picks each runner's latest age grade strictly before the round being scored.
  *
- * A runner who misses a round therefore compares against whenever they last ran
- * that distance in the season, not against the immediately preceding round.
+ * Age grades make performances comparable across course choices and seasons, so
+ * neither a distance switch nor a season boundary resets the chain.
  */
 function indexPriorResults(
   priorResults: readonly PriorResultInput[],
-  currentOrdinal: number,
+  currentDate: Date,
 ): Map<string, PriorResultInput> {
   const index = new Map<string, PriorResultInput>();
   for (const prior of priorResults) {
-    if (prior.roundOrdinal >= currentOrdinal) continue;
-    const key = comparableKey(prior.runnerId, prior.distanceChoice);
-    const existing = index.get(key);
-    if (!existing || prior.roundOrdinal > existing.roundOrdinal) {
-      index.set(key, prior);
+    if (prior.occurredOn.getTime() >= currentDate.getTime()) continue;
+    const existing = index.get(prior.runnerId);
+    if (!existing || prior.occurredOn.getTime() > existing.occurredOn.getTime()) {
+      index.set(prior.runnerId, prior);
     }
   }
   return index;

@@ -4,7 +4,7 @@ import { recordAuditEvent, changedFields } from '@/lib/audit';
 import { requireActor } from '@/lib/authz';
 import { parseCalendarDate } from '@/lib/dates';
 import { ServiceError, conflict, fieldErrorsFrom, notFound, validation } from './errors';
-import { recalculateSeason } from './time-trials';
+import { recalculateSeasonAndFollowing } from './time-trials';
 import type { Runner } from '@/generated/prisma';
 
 /**
@@ -246,6 +246,8 @@ export interface MergeOutcome {
   readonly movedChampionshipResults: number;
   readonly skippedTimeTrialResults: number;
   readonly skippedChampionshipResults: number;
+  readonly movedAgeGradeBaseline: number;
+  readonly skippedAgeGradeBaseline: number;
 }
 
 /**
@@ -275,17 +277,18 @@ export async function mergeRunners(
       throw conflict('The surviving runner has itself been merged into another record.');
     }
 
-    const [existingTt, existingChamp] = await Promise.all([
+    const [existingTt, existingChamp, existingBaseline] = await Promise.all([
       tx.ttResult.findMany({ where: { runnerId: survivingId }, select: { roundId: true } }),
       tx.championshipResult.findMany({
         where: { runnerId: survivingId },
         select: { raceId: true },
       }),
+      tx.ttAgeGradeBaseline.findUnique({ where: { runnerId: survivingId } }),
     ]);
     const occupiedRounds = new Set(existingTt.map((r) => r.roundId));
     const occupiedRaces = new Set(existingChamp.map((r) => r.raceId));
 
-    const [duplicateTt, duplicateChamp] = await Promise.all([
+    const [duplicateTt, duplicateChamp, duplicateBaseline] = await Promise.all([
       tx.ttResult.findMany({
         where: { runnerId: duplicateId },
         select: { id: true, roundId: true },
@@ -294,6 +297,7 @@ export async function mergeRunners(
         where: { runnerId: duplicateId },
         select: { id: true, raceId: true },
       }),
+      tx.ttAgeGradeBaseline.findUnique({ where: { runnerId: duplicateId } }),
     ]);
 
     const movableTt = duplicateTt.filter((r) => !occupiedRounds.has(r.roundId));
@@ -311,6 +315,12 @@ export async function mergeRunners(
         data: { runnerId: survivingId },
       });
     }
+    if (duplicateBaseline && !existingBaseline) {
+      await tx.ttAgeGradeBaseline.update({
+        where: { runnerId: duplicateId },
+        data: { runnerId: survivingId },
+      });
+    }
 
     await tx.runner.update({
       where: { id: duplicateId },
@@ -323,6 +333,8 @@ export async function mergeRunners(
       movedChampionshipResults: movableChamp.length,
       skippedTimeTrialResults: duplicateTt.length - movableTt.length,
       skippedChampionshipResults: duplicateChamp.length - movableChamp.length,
+      movedAgeGradeBaseline: duplicateBaseline && !existingBaseline ? 1 : 0,
+      skippedAgeGradeBaseline: duplicateBaseline && existingBaseline ? 1 : 0,
     };
 
     await recordAuditEvent(
@@ -364,6 +376,8 @@ export interface RunnerListItem {
   readonly category: Runner['category'];
   readonly status: Runner['status'];
   readonly resultCount: number;
+  readonly openingAgeGradePercent: number | null;
+  readonly openingAgeGradeDate: string | null;
 }
 
 /** Admin-facing runner list. Still excludes the date of birth from the shape. */
@@ -387,6 +401,7 @@ export async function listRunners(options?: {
       familyName: true,
       category: true,
       status: true,
+      ageGradeBaseline: { select: { ageGradePercent: true, recordedOn: true } },
       _count: { select: { timeTrialResults: true, championshipResults: true } },
     },
     orderBy: [{ familyName: 'asc' }, { givenName: 'asc' }],
@@ -400,11 +415,17 @@ export async function listRunners(options?: {
     category: runner.category,
     status: runner.status,
     resultCount: runner._count.timeTrialResults + runner._count.championshipResults,
+    openingAgeGradePercent:
+      runner.ageGradeBaseline === null ? null : Number(runner.ageGradeBaseline.ageGradePercent),
+    openingAgeGradeDate:
+      runner.ageGradeBaseline === null
+        ? null
+        : runner.ageGradeBaseline.recordedOn.toISOString().slice(0, 10),
   }));
 }
 
 /**
- * Replays scoring for every season this runner has a result in.
+ * Replays scoring from the first season this runner has a result in.
  *
  * A runner's date of birth and scoring category are inputs to their age grade,
  * which in turn drives improvement points for themselves and — because
@@ -418,9 +439,12 @@ async function recalculateSeasonsFor(runnerId: string): Promise<string[]> {
     select: { round: { select: { seasonId: true } } },
   });
   const seasonIds = [...new Set(results.map((result) => result.round.seasonId))];
-  for (const seasonId of seasonIds) {
-    await recalculateSeason(seasonId);
-  }
+  const earliest = await prisma.ttSeason.findFirst({
+    where: { id: { in: seasonIds } },
+    orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+    select: { id: true },
+  });
+  if (earliest) await recalculateSeasonAndFollowing(earliest.id);
   return seasonIds;
 }
 

@@ -39,7 +39,7 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * (5,922 m) for two laps and 4.95 miles (7,966 m) for three. Scoring consumes
  * each season's stored snapshot so historical migrations are deliberate.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V4';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V5';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;

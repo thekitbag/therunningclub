@@ -183,7 +183,7 @@ export default async function RoundEntryPage({
                     <td className="num">{row.ageGrade === null ? '—' : `${row.ageGrade}%`}</td>
                     <td className="num">
                       {row.previousAgeGrade === null ? (
-                        <span title="No comparable earlier result at this distance">—</span>
+                        <span title="No earlier published age grade or opening baseline">—</span>
                       ) : (
                         `${row.previousAgeGrade}%`
                       )}

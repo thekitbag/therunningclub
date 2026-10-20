@@ -487,11 +487,11 @@ describe('scoring versions', () => {
     // Written out in full rather than compared against the constant: a version
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V5');
     expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V5');
   });
 
   it('migrates both season and result version metadata during recalculation', async () => {
@@ -577,7 +577,7 @@ describe('scoring versions', () => {
       orderBy: { distanceChoice: 'asc' },
     });
     expect([migratedSeason.twoLapMetres, migratedSeason.threeLapMetres]).toEqual([5922, 7966]);
-    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V5');
     expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     expect(migrated.map((result) => result.distanceMetres).sort()).toEqual([5922, 7966]);
 
@@ -586,7 +586,7 @@ describe('scoring versions', () => {
       expect(Number(result.ageGradePercent)).toBeLessThan(
         Number(beforeByRunner.get(result.runnerId)?.ageGradePercent),
       );
-      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V5');
       expect(result.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     }
   });

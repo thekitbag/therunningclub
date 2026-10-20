@@ -77,8 +77,9 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
           <table>
             <caption>
               {title}. Round total is finishing points plus improvement points. A dash in the
-              previous-grade column means there was no comparable earlier result at this distance in
-              this season, so no improvement points could be earned.
+              previous-grade column means there was no earlier published age grade or imported
+              opening baseline, so no improvement points could be earned. Comparisons can cross
+              seasons and lap choices.
             </caption>
             <thead>
               <tr>

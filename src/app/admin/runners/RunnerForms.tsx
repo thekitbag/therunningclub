@@ -341,6 +341,9 @@ export function RunnerForms({
                 <th scope="col" className="num">
                   Results
                 </th>
+                <th scope="col" className="num">
+                  Opening AG
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -356,11 +359,21 @@ export function RunnerForms({
                     </span>
                   </td>
                   <td className="num">{runner.resultCount}</td>
+                  <td className="num">
+                    {runner.openingAgeGradePercent === null
+                      ? '—'
+                      : `${runner.openingAgeGradePercent.toFixed(2)}%`}
+                    {runner.openingAgeGradeDate ? (
+                      <span className="muted" style={{ display: 'block', fontSize: '0.8rem' }}>
+                        {runner.openingAgeGradeDate}
+                      </span>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
               {runners.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="muted">
+                  <td colSpan={5} className="muted">
                     No runners yet. Add the first one above.
                   </td>
                 </tr>

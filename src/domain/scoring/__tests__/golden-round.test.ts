@@ -214,6 +214,7 @@ describe('golden season best-four totals', () => {
         results: cells
           .filter((cell) => cell.ordinal === ordinal)
           .map((cell) => ({
+            resultId: null,
             runnerId: cell.runnerId,
             category: cell.category,
             distanceChoice: 'TWO_LAP' as const,
