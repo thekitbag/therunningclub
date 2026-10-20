@@ -28,7 +28,7 @@
 --   * AGE-GRADE PERCENTAGES DERIVED FROM THESE DATES ARE FICTION. They are not
 --     the club's age grades. The public season and round pages show them.
 --   * Improvement points are still meaningful in ordering — a runner is only
---     ever compared with their own earlier result at the same distance, and a
+--     ever compared with their own earlier published age grade, and a
 --     wrong-but-constant birth date cancels out of that comparison.
 --   * Finishing points, round totals and best-four standings are unaffected;
 --     they depend only on elapsed time.

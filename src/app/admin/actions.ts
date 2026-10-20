@@ -25,6 +25,7 @@ import {
   mergeRunnersAndRecalculate,
   updateRunner,
 } from '@/services/runners';
+import { importAgeGradeBaselines } from '@/services/age-grade-baselines';
 import {
   createRound,
   createSeason,
@@ -195,15 +196,58 @@ export async function mergeRunnersAction(
     revalidatePath('/admin/runners');
     revalidatePathsForPublicResults();
 
-    const skipped = outcome.skippedTimeTrialResults + outcome.skippedChampionshipResults;
+    const skipped =
+      outcome.skippedTimeTrialResults +
+      outcome.skippedChampionshipResults +
+      outcome.skippedAgeGradeBaseline;
     return {
       status: 'success',
       message:
         `Merged. Moved ${outcome.movedTimeTrialResults} time-trial and ` +
-        `${outcome.movedChampionshipResults} championship result(s).` +
+        `${outcome.movedChampionshipResults} championship result(s)` +
+        (outcome.movedAgeGradeBaseline ? ' and the opening age grade.' : '.') +
         (skipped > 0
           ? ` ${skipped} result(s) stayed with the old record because the surviving runner already had a result in the same round or race.`
           : ''),
+    };
+  } catch (error) {
+    rethrowIfFrameworkSignal(error);
+    return toActionState(error, '/admin/runners');
+  }
+}
+
+export async function importAgeGradeBaselinesAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    await guardMutation(formData);
+    const upload = formData.get('csvFile');
+    if (!(upload instanceof File) || upload.size === 0) {
+      return {
+        status: 'error',
+        message: 'Choose a CSV file.',
+        fieldErrors: { csvFile: 'Choose a CSV file.' },
+      };
+    }
+    if (upload.size > 256_000) {
+      return {
+        status: 'error',
+        message: 'The CSV must be smaller than 256 KB.',
+        fieldErrors: { csvFile: 'Choose a file smaller than 256 KB.' },
+      };
+    }
+
+    const outcome = await importAgeGradeBaselines({
+      recordedOn: text(formData, 'recordedOn'),
+      sourceLabel: text(formData, 'sourceLabel'),
+      csv: await upload.text(),
+    });
+    revalidatePath('/admin/runners');
+    revalidatePathsForPublicResults();
+    return {
+      status: 'success',
+      message: `Imported ${outcome.imported} opening age grade(s): ${outcome.created} new and ${outcome.updated} updated. Later results were recalculated.`,
     };
   } catch (error) {
     rethrowIfFrameworkSignal(error);

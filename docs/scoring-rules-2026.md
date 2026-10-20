@@ -1,7 +1,9 @@
 # Time-trial scoring, 2026
 
-What `RMPAC_SCORING_V4` implements, where it came from, and the two points that
-are still open. V4 retains the V3 points ladders documented below and makes the
+What `RMPAC_SCORING_V5` implements, where it came from, and the remaining open
+point. V5 retains the V4 points ladders and measured courses documented below,
+and carries each runner's last published age grade across lap choices and season
+boundaries. V4 retained the V3 points ladders and made the
 club-measured summer courses authoritative: 3.68 miles (5,922 m) for two laps
 and 4.95 miles (7,966 m) for three. Written after the committee supplied
 `2026 Summer Time Trial.xlsx` in September 2026 and confirmed the course
@@ -21,7 +23,11 @@ Both distances score off that one ladder, so a small three-lap field is not
 penalised for being small — its winner scores the same as the two-lap winner.
 Nobody who finishes scores zero.
 
-**Improvement points.** Pool every runner in the round, across both distances
+**Improvement points.** A runner compares with their most recent earlier
+published age grade across the complete app-managed history, regardless of
+season or lap choice. A dated opening baseline imported from the club's older
+records seeds the comparison when the app does not hold that previous result.
+Pool every runner in the round, across both distances
 and both categories. Let `C` be the number who had a **comparable earlier
 result** — including those whose age grade went _down_. Rank the runners whose
 age grade improved, largest improvement first:
@@ -85,15 +91,13 @@ document and the summer workbook has demonstrable slips elsewhere. **If the
 committee confirms the workbook is right, the fix is to step points down per
 distinct time instead of per position in `scoreRound`.**
 
-## Open question 2: which earlier result counts
+## Earlier-result lookup
 
-The workbook's `XLOOKUP` reaches only the **immediately preceding month**: miss
-a month and you get no comparison at all. `indexPriorResults` instead reaches
-back to whenever the runner last ran that distance, which is a deliberate
-choice recorded in its own comment.
-
-This changes who appears in `C` and who can score improvement points. Left as
-is pending a decision.
+The workbook's `XLOOKUP` reaches only the **immediately preceding month** in its
+local monthly tables. Review of prior seasons confirmed that the club carries
+the runner's “Last AG” across seasons. The application uses the most recent
+earlier published value it holds, so missing a month, changing lap choice or
+crossing a season boundary does not discard a valid comparison.
 
 ## The winter sheet no longer matches
 

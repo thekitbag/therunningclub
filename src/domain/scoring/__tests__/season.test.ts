@@ -61,7 +61,7 @@ describe('scoreSeason', () => {
     expect(third?.results[0]?.improvementPoints).toBe(1);
   });
 
-  it('looks back past a missed round to the last result at that distance', () => {
+  it('looks back past a missed round to the last result', () => {
     const result = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
       publishedOnly: true,
@@ -248,12 +248,32 @@ describe('recalculation after historical edits', () => {
     );
   });
 
-  it('changing distance breaks the comparison chain', () => {
+  it('keeps the comparison chain across a distance change', () => {
     const switched = run(
       season([[entry(ALICE, 'TWO_LAP', mmss(25, 0))], [entry(ALICE, 'THREE_LAP', mmss(37, 0))]]),
     );
-    expect(switched.rounds[1]?.results[0]?.previousAgeGradePercent).toBeNull();
-    expect(switched.rounds[1]?.results[0]?.improvementPoints).toBe(0);
+    expect(switched.rounds[1]?.results[0]?.previousAgeGradePercent).toBe(
+      switched.rounds[0]?.results[0]?.ageGradePercent,
+    );
+  });
+
+  it('uses a dated opening baseline for the first managed result', () => {
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      publishedOnly: true,
+      priorResults: [
+        {
+          runnerId: ALICE.runnerId,
+          occurredOn: utc('2025-09-01'),
+          roundOrdinal: null,
+          ageGradePercent: 50,
+        },
+      ],
+      rounds: season([[entry(ALICE, 'TWO_LAP', mmss(25, 0))]]),
+    });
+
+    expect(result.rounds[0]?.results[0]?.previousAgeGradePercent).toBe(50);
+    expect(result.rounds[0]?.results[0]?.previousRoundOrdinal).toBeNull();
   });
 
   it('is deterministic: replaying identical input reproduces identical output', () => {

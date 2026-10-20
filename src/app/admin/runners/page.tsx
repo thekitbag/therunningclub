@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { listRunners } from '@/services/runners';
 import { CsrfField } from '@/components/admin/CsrfField';
 import { RunnerForms } from './RunnerForms';
+import { AgeGradeBaselineImport } from './AgeGradeBaselineImport';
 import { toDateInputValue } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
@@ -62,6 +63,8 @@ export default async function RunnersPage() {
         csrfFieldEdit={<CsrfField />}
         csrfFieldMerge={<CsrfField />}
       />
+
+      <AgeGradeBaselineImport csrfField={<CsrfField />} />
     </div>
   );
 }

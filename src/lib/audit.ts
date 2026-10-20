@@ -21,6 +21,7 @@ export type AuditAction =
   | 'runner.updated'
   | 'runner.deactivated'
   | 'runner.merged'
+  | 'age-grade-baseline.imported'
   | 'season.created'
   | 'season.updated'
   | 'season.published'

@@ -31,6 +31,8 @@ export interface SeasonScoringInput {
   /** Authoritative distance snapshot stored on the season. */
   readonly distances: SeasonDistances;
   readonly rounds: readonly SeasonRoundInput[];
+  /** Published history and opening baselines from before this season. */
+  readonly priorResults?: readonly PriorResultInput[];
   /** Restrict the improvement chain and standings to published rounds. */
   readonly publishedOnly: boolean;
 }
@@ -71,17 +73,21 @@ export interface SeasonScoring {
 /**
  * Scores a whole season from raw inputs.
  *
- * Rounds are processed in ordinal order and each one's results are fed forward
- * as prior comparables for the next. That ordering is the entire reason editing
- * a historical time correctly changes later improvement points: there is no
+ * Rounds are processed in chronological order and each one's results are fed
+ * forward as prior comparables for the next. Ordinal makes same-date output
+ * deterministic, although results on the same calendar date do not compare
+ * with one another. That ordering is the entire reason editing a
+ * historical time correctly changes later improvement points: there is no
  * cached intermediate state to go stale, only a replay of the same pure
  * function over the corrected inputs.
  */
 export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
-  const ordered = [...input.rounds].sort((a, b) => a.ordinal - b.ordinal);
+  const ordered = [...input.rounds].sort(
+    (a, b) => a.date.getTime() - b.date.getTime() || a.ordinal - b.ordinal,
+  );
   const scoredRounds: SeasonRoundScoring[] = [];
   const problems: (ScoringProblem & { roundId: string })[] = [];
-  const priorResults: PriorResultInput[] = [];
+  const priorResults: PriorResultInput[] = [...(input.priorResults ?? [])];
 
   for (const round of ordered) {
     if (input.publishedOnly && !round.published) continue;
@@ -106,13 +112,14 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
 
     // Only a published round becomes a comparable for later improvement
     // calculations, so previewing a draft never disturbs published history.
-    if (round.published || !input.publishedOnly) {
+    if (round.published) {
       for (const result of scoring.results) {
         if (result.ageGradePercent === null) continue;
         priorResults.push({
           runnerId: result.runnerId,
-          distanceChoice: result.distanceChoice,
+          occurredOn: round.date,
           roundOrdinal: round.ordinal,
+          resultId: result.resultId ?? undefined,
           ageGradePercent: result.ageGradePercent,
         });
       }

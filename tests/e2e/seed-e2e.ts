@@ -75,7 +75,7 @@ async function main(): Promise<void> {
 
   try {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "tt_result", "tt_round", "tt_season", "championship_result", ' +
+      'TRUNCATE TABLE "tt_result", "tt_round", "tt_season", "tt_age_grade_baseline", "championship_result", ' +
         '"race", "championship", "runner", "audit_event", "admin_password_reset", ' +
         '"admin_session", "administrator" RESTART IDENTITY CASCADE;',
     );

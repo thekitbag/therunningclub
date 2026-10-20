@@ -182,6 +182,7 @@ model Runner {
   updatedAt DateTime @updatedAt
 
   timeTrialResults   TtResult[]
+  ageGradeBaseline   TtAgeGradeBaseline?
   championshipResults ChampionshipResult[]
 
   @@index([searchName])
@@ -193,6 +194,26 @@ model Runner {
 // ---------------------------------------------------------------------------
 // Time trial
 // ---------------------------------------------------------------------------
+
+/// One historical age grade that predates the app-managed result history.
+/// It seeds a runner's first improvement comparison without inventing a time,
+/// distance or event that the club no longer has.
+model TtAgeGradeBaseline {
+  id String @id @default(uuid()) @db.Uuid
+
+  runnerId String @unique @db.Uuid
+  runner   Runner @relation(fields: [runnerId], references: [id], onDelete: Cascade)
+
+  ageGradePercent Decimal  @db.Decimal(8, 5)
+  recordedOn      DateTime @db.Date
+  sourceLabel     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recordedOn])
+  @@map("tt_age_grade_baseline")
+}
 
 model TtSeason {
   id String @id @default(uuid()) @db.Uuid

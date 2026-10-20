@@ -18,8 +18,9 @@
  *     (5,922 m) for two laps and 4.95 miles (7,966 m) for three. A summer dry
  *     run previews those distances before the apply step migrates them.
  *
- * It calls `recalculateSeason` from src/services/time-trials.ts — the same
- * function the admin screens call. Nothing here computes a score itself.
+ * It calls `recalculateSeasonAndFollowing` from src/services/time-trials.ts —
+ * the same chronological cascade the admin screens call. Nothing here computes
+ * a score itself.
  *
  * Usage:
  *   # Dry run: reports what would change, writes nothing.
@@ -34,7 +35,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma';
-import { computeSeasonScoring, recalculateSeason } from '../src/services/time-trials';
+import { computeSeasonScoring, recalculateSeasonAndFollowing } from '../src/services/time-trials';
 import { AGE_GRADE_VERSION, SEASON_DISTANCES, formatElapsedTime } from '../src/domain/scoring';
 
 function describeTarget(connectionString: string): string {
@@ -197,7 +198,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const applied = await recalculateSeason(season.id, undefined, targetDistances);
+    const applied = await recalculateSeasonAndFollowing(season.id, undefined, targetDistances);
     await prisma.auditEvent.create({
       data: {
         action: 'tt.season.recalculated',

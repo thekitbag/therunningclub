@@ -164,9 +164,9 @@ describe('finishing points', () => {
 });
 
 describe('improvement points', () => {
-  const priorAt = (runnerId: string, choice: 'TWO_LAP' | 'THREE_LAP', percent: number) => ({
+  const priorAt = (runnerId: string, _choice: 'TWO_LAP' | 'THREE_LAP', percent: number) => ({
     runnerId,
-    distanceChoice: choice,
+    occurredOn: utc('2025-12-20'),
     roundOrdinal: 1,
     ageGradePercent: percent,
   });
@@ -181,7 +181,7 @@ describe('improvement points', () => {
     });
   }
 
-  it('earns nothing on a first result in the season', () => {
+  it('earns nothing without an earlier result or baseline', () => {
     const result = scoreWithPriors([entry(runner('a', 'MALE'), 'TWO_LAP', mmss(20, 0))], []);
     const only = result.results[0];
     expect(only?.previousAgeGradePercent).toBeNull();
@@ -190,19 +190,19 @@ describe('improvement points', () => {
     expect(result.improverCount).toBe(0);
   });
 
-  it('earns nothing on the first result after switching distance', () => {
+  it('keeps the comparison when switching distance', () => {
     const a = runner('a', 'MALE');
-    // The runner has two-lap history but is running three laps for the
-    // first time, so there is nothing comparable to improve on.
+    // Age grades are comparable between courses, so a lap-choice change does
+    // not reset the runner's history.
     const result = scoreWithPriors(
       [entry(a, 'THREE_LAP', mmss(30, 0))],
       [priorAt('a', 'TWO_LAP', 60)],
     );
-    expect(result.results[0]?.previousAgeGradePercent).toBeNull();
-    expect(result.results[0]?.improvementPoints).toBe(0);
+    expect(result.results[0]?.previousAgeGradePercent).toBe(60);
+    expect(result.results[0]?.improvement).not.toBeNull();
   });
 
-  it('compares against the most recent earlier result at that distance', () => {
+  it('compares against the most recent earlier age grade by date', () => {
     const a = runner('a', 'MALE');
     const result = scoreRound({
       distances: SEASON_DISTANCES.WINTER,
@@ -210,10 +210,10 @@ describe('improvement points', () => {
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
       priorResults: [
-        { runnerId: 'a', distanceChoice: 'TWO_LAP', roundOrdinal: 1, ageGradePercent: 50 },
-        { runnerId: 'a', distanceChoice: 'TWO_LAP', roundOrdinal: 3, ageGradePercent: 55 },
-        // Round 6 is in the future relative to round 5 and must be ignored.
-        { runnerId: 'a', distanceChoice: 'TWO_LAP', roundOrdinal: 6, ageGradePercent: 99 },
+        { runnerId: 'a', occurredOn: utc('2025-10-01'), roundOrdinal: 1, ageGradePercent: 50 },
+        { runnerId: 'a', occurredOn: utc('2025-12-01'), roundOrdinal: 3, ageGradePercent: 55 },
+        // A chronologically later result must be ignored even if supplied.
+        { runnerId: 'a', occurredOn: utc('2026-02-01'), roundOrdinal: 6, ageGradePercent: 99 },
       ],
     });
     // Rounds 2 and 4 were missed; the comparison reaches back to round 3.
@@ -323,7 +323,12 @@ describe('round totals', () => {
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
       priorResults: [
-        { runnerId: 'a', distanceChoice: 'TWO_LAP', roundOrdinal: 1, ageGradePercent: current - 3 },
+        {
+          runnerId: 'a',
+          occurredOn: utc('2025-12-20'),
+          roundOrdinal: 1,
+          ageGradePercent: current - 3,
+        },
       ],
     });
 
