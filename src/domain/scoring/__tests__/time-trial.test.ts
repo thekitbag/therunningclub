@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { scoreRound } from '../time-trial';
 import type { RoundEntryInput } from '../time-trial';
+import { SEASON_DISTANCES } from '../types';
 import { entry, mmss, utc, type FixtureRunner } from './fixtures';
 
 const runner = (id: string, category: 'MALE' | 'FEMALE', birth = '1986-01-01'): FixtureRunner => ({
@@ -13,7 +14,7 @@ const ROUND_DATE = utc('2026-01-20');
 
 function score(entries: readonly RoundEntryInput[], priorResults = []) {
   return scoreRound({
-    seasonType: 'WINTER',
+    distances: SEASON_DISTANCES.WINTER,
     roundOrdinal: 2,
     roundDate: ROUND_DATE,
     entries,
@@ -172,7 +173,7 @@ describe('improvement points', () => {
 
   function scoreWithPriors(entries: readonly RoundEntryInput[], priors: unknown[]) {
     return scoreRound({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries,
@@ -204,7 +205,7 @@ describe('improvement points', () => {
   it('compares against the most recent earlier result at that distance', () => {
     const a = runner('a', 'MALE');
     const result = scoreRound({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       roundOrdinal: 5,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
@@ -308,7 +309,7 @@ describe('round totals', () => {
   it('adds finishing and improvement points', () => {
     const a = runner('a', 'MALE');
     const graded = scoreRound({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
@@ -317,7 +318,7 @@ describe('round totals', () => {
     const current = graded.results[0]?.ageGradePercent as number;
 
     const result = scoreRound({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],

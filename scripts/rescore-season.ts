@@ -14,6 +14,9 @@
  *  3. The age-grade engine changed from the 2015 tables to the frozen
  *     RunBundle-compatible Alan Jones 2025 calculation. Every affected age
  *     grade and improvement ranking must be replayed as one season.
+ *  4. Every summer season uses the club-measured course distances: 3.68 miles
+ *     (5,922 m) for two laps and 4.95 miles (7,966 m) for three. A summer dry
+ *     run previews those distances before the apply step migrates them.
  *
  * It calls `recalculateSeason` from src/services/time-trials.ts — the same
  * function the admin screens call. Nothing here computes a score itself.
@@ -32,7 +35,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma';
 import { computeSeasonScoring, recalculateSeason } from '../src/services/time-trials';
-import { AGE_GRADE_VERSION, formatElapsedTime } from '../src/domain/scoring';
+import { AGE_GRADE_VERSION, SEASON_DISTANCES, formatElapsedTime } from '../src/domain/scoring';
 
 function describeTarget(connectionString: string): string {
   let url: URL;
@@ -70,6 +73,8 @@ async function main(): Promise<void> {
         name: true,
         slug: true,
         type: true,
+        twoLapMetres: true,
+        threeLapMetres: true,
         scoringRulesVersion: true,
         ageGradeVersion: true,
       },
@@ -91,6 +96,16 @@ async function main(): Promise<void> {
         `Age grade: ${season.ageGradeVersion}`,
     );
 
+    const storedDistances = {
+      TWO_LAP: season.twoLapMetres,
+      THREE_LAP: season.threeLapMetres,
+    } as const;
+    const targetDistances = season.type === 'SUMMER' ? SEASON_DISTANCES.SUMMER : storedDistances;
+    console.log(
+      `Distances: 2 laps ${storedDistances.TWO_LAP} -> ${targetDistances.TWO_LAP} m; ` +
+        `3 laps ${storedDistances.THREE_LAP} -> ${targetDistances.THREE_LAP} m`,
+    );
+
     const before = await prisma.ttResult.findMany({
       where: { round: { seasonId: season.id } },
       select: {
@@ -106,12 +121,17 @@ async function main(): Promise<void> {
       },
     });
     if (before.length === 0) {
-      console.log('\nThis season holds no results.\n');
-      return;
+      console.log(
+        '\nThis season holds no results; only its distance and version metadata can change.\n',
+      );
     }
 
     // Score without writing, so a dry run can show the exact deltas.
-    const scoring = await computeSeasonScoring(season.id, { publishedOnly: false }, prisma);
+    const scoring = await computeSeasonScoring(
+      season.id,
+      { publishedOnly: false, distances: targetDistances },
+      prisma,
+    );
     const next = new Map(
       scoring.rounds.flatMap((r) => r.results.map((x) => [`${r.roundId}:${x.runnerId}`, x])),
     );
@@ -177,11 +197,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const applied = await recalculateSeason(season.id);
-    await prisma.ttSeason.update({
-      where: { id: season.id },
-      data: { scoringRulesVersion: applied.scoringRulesVersion },
-    });
+    const applied = await recalculateSeason(season.id, undefined, targetDistances);
     await prisma.auditEvent.create({
       data: {
         action: 'tt.season.recalculated',
@@ -191,6 +207,8 @@ async function main(): Promise<void> {
           reason: 'Age grades and scoring rules recalculated with the current versioned engines',
           scoringRulesVersion: applied.scoringRulesVersion,
           ageGradeVersion: AGE_GRADE_VERSION,
+          twoLapMetres: targetDistances.TWO_LAP,
+          threeLapMetres: targetDistances.THREE_LAP,
           resultsChanged: changes.length,
         },
       },

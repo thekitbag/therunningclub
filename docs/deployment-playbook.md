@@ -257,8 +257,8 @@ Suggested order, because each step depends on the one above:
    The form warns you about possible duplicates as you type.
 
 3. **Time-trial season** (`/admin/time-trials`) — create Summer 2026, which
-   fills in April–September and the 6 km / 8 km distances automatically. Add the
-   six rounds with their real dates.
+   fills in April–September and the measured 3.68-mile / 4.95-mile distances
+   automatically. Add the six rounds with their real dates.
 
 4. **Results** — open a round and enter the field. Remember the sheet records a
    handicap trial: enter the **actual running time (AT)**, not the handicap

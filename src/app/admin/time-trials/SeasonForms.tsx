@@ -64,7 +64,7 @@ export function SeasonForms({
                 onChange={(event) => setType(event.target.value as 'WINTER' | 'SUMMER')}
               >
                 <option value="WINTER">Winter — 5 km and 7.5 km</option>
-                <option value="SUMMER">Summer — 6 km and 8 km</option>
+                <option value="SUMMER">Summer — 3.68 miles and 4.95 miles</option>
               </select>
             </div>
 

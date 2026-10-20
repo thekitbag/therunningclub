@@ -381,7 +381,7 @@ async function main(): Promise<void> {
       }
 
       // The application's own function, not a copy of it.
-      return recalculateSeason(season.id, tx);
+      return recalculateSeason(season.id, tx, SEASON_DISTANCES.SUMMER);
     });
 
     await prisma.auditEvent.create({

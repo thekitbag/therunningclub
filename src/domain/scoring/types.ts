@@ -34,7 +34,12 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * how many runners had a comparable earlier result instead of by how many
  * improved. Stored on every result so a rescore is a deliberate migration.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V3';
+/**
+ * V4 makes the measured summer course distances authoritative: 3.68 miles
+ * (5,922 m) for two laps and 4.95 miles (7,966 m) for three. Scoring consumes
+ * each season's stored snapshot so historical migrations are deliberate.
+ */
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V4';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;
@@ -59,12 +64,14 @@ export const CHAMPIONSHIP_QUALIFYING_RACES = 7;
  */
 export const CHAMPIONSHIP_COUNTING_RACES = 7;
 
-/** Lap distances in metres, per season type. */
-export const SEASON_DISTANCES: Readonly<
-  Record<SeasonType, Readonly<Record<DistanceChoice, number>>>
-> = {
+export type SeasonDistances = Readonly<Record<DistanceChoice, number>>;
+
+/** Official lap distances in whole metres, per season type. */
+export const SEASON_DISTANCES: Readonly<Record<SeasonType, SeasonDistances>> = {
   WINTER: { TWO_LAP: 5000, THREE_LAP: 7500 },
-  SUMMER: { TWO_LAP: 6000, THREE_LAP: 8000 },
+  // Club-measured as 3.68 miles and 4.95 miles respectively. Whole metres are
+  // the persistence unit and preserve RunBundle's displayed two-decimal result.
+  SUMMER: { TWO_LAP: 5922, THREE_LAP: 7966 },
 };
 
 /** Calendar months (1-12) each season type normally spans. */
@@ -86,5 +93,6 @@ export function distanceLabel(seasonType: SeasonType, choice: DistanceChoice): s
 
 export function formatKilometres(metres: number): string {
   const km = metres / 1000;
-  return `${Number.isInteger(km) ? km.toFixed(0) : km.toFixed(1)} km`;
+  const digits = Number.isInteger(km) ? 0 : metres % 100 === 0 ? 1 : 3;
+  return `${km.toFixed(digits)} km`;
 }

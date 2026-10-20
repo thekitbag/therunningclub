@@ -1,5 +1,5 @@
 import { calculateAgeGrade } from '../age-grade';
-import type { DistanceChoice, ScoringCategory } from '../types';
+import { SEASON_DISTANCES, type DistanceChoice, type ScoringCategory } from '../types';
 import type { PriorResultInput, RoundEntryInput } from '../time-trial';
 
 export const utc = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -43,14 +43,7 @@ export function priorForImprovement(
   improvement: number,
   roundOrdinal = 1,
 ): PriorResultInput {
-  const distanceMetres =
-    seasonType === 'WINTER'
-      ? input.distanceChoice === 'TWO_LAP'
-        ? 5000
-        : 7500
-      : input.distanceChoice === 'TWO_LAP'
-        ? 6000
-        : 8000;
+  const distanceMetres = SEASON_DISTANCES[seasonType][input.distanceChoice];
 
   const current = calculateAgeGrade({
     category: input.category,

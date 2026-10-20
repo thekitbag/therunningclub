@@ -16,29 +16,24 @@ import type { ScoringCategory } from '../types';
  * future table edition is a deliberate migration rather than a silent rewrite of
  * published history.
  */
-export const AGE_GRADE_VERSION = 'ALAN_JONES_ROAD_2025_RUNBUNDLE_V1';
+export const AGE_GRADE_VERSION = 'ALAN_JONES_ROAD_2025_RUNBUNDLE_V2';
 
 export { MIN_TABLE_AGE, MAX_TABLE_AGE };
 
-const FOUR_MILES = 6437.376;
-const SEVEN_POINT_FIVE_KM = 7500;
-const EIGHT_KM = 8000;
+const TABLE_DISTANCES = AGE_FACTOR_DISTANCES_METRES as readonly number[];
+const MIN_SUPPORTED_DISTANCE_METRES = TABLE_DISTANCES[0] as number;
+const MAX_SUPPORTED_DISTANCE_METRES = TABLE_DISTANCES[TABLE_DISTANCES.length - 1] as number;
 
 /**
- * RunBundle treats `7.5 km` as a non-standard road distance. It linearly
- * interpolates between the closest distances in the source table: 4 miles and
- * 8 km. Its result depends on interpolating both the open standard and the age
- * factor, not a rounded age-standard time.
+ * A distance is supported when the vendored road table contains an exact row
+ * or two rows that bracket it for RunBundle-compatible interpolation.
  */
-const RUNBUNDLE_7_5_KM_WEIGHT = (SEVEN_POINT_FIVE_KM - FOUR_MILES) / (EIGHT_KM - FOUR_MILES);
-
-/** Distances the club actually races, in metres. */
-export const SUPPORTED_DISTANCES_METRES = [5000, 6000, 7500, 8000] as const;
-
-export type SupportedDistanceMetres = (typeof SUPPORTED_DISTANCES_METRES)[number];
-
-export function isSupportedDistance(metres: number): metres is SupportedDistanceMetres {
-  return (SUPPORTED_DISTANCES_METRES as readonly number[]).includes(metres);
+export function isSupportedDistance(metres: number): boolean {
+  return (
+    Number.isFinite(metres) &&
+    metres >= MIN_SUPPORTED_DISTANCE_METRES &&
+    metres <= MAX_SUPPORTED_DISTANCE_METRES
+  );
 }
 
 /** Raised when a result cannot be age-graded, rather than inventing a factor. */
@@ -60,19 +55,23 @@ function openStandardsFor(category: ScoringCategory): AgeFactorRow {
   return category === 'MALE' ? MALE_OPEN_CLASS_STANDARDS_2025 : FEMALE_OPEN_CLASS_STANDARDS_2025;
 }
 
-function tableIndexFor(metres: number): number {
-  const index = (AGE_FACTOR_DISTANCES_METRES as readonly number[]).indexOf(metres);
-  if (index < 0) {
-    throw new AgeGradeError(
-      'UNSUPPORTED_DISTANCE',
-      `No vendored age factor exists for ${metres} m.`,
-    );
-  }
-  return index;
-}
-
 function interpolate(lower: number, upper: number, weight: number): number {
   return lower * (1 - weight) + upper * weight;
+}
+
+function bracketingTableIndices(metres: number): readonly [number, number] {
+  const exact = TABLE_DISTANCES.indexOf(metres);
+  if (exact >= 0) return [exact, exact];
+
+  const upper = TABLE_DISTANCES.findIndex((distance) => distance > metres);
+  if (upper <= 0) {
+    throw new AgeGradeError(
+      'UNSUPPORTED_DISTANCE',
+      `${metres} m is outside the vendored road-table range ` +
+        `(${MIN_SUPPORTED_DISTANCE_METRES}-${MAX_SUPPORTED_DISTANCE_METRES} m).`,
+    );
+  }
+  return [upper - 1, upper];
 }
 
 /**
@@ -126,24 +125,33 @@ export function ageStandardSeconds(
   }
   const openStandards = openStandardsFor(category);
 
-  if (distanceMetres === SEVEN_POINT_FIVE_KM) {
-    const lowerIndex = tableIndexFor(FOUR_MILES);
-    const upperIndex = tableIndexFor(EIGHT_KM);
-    const openStandard = interpolate(
-      openStandards[lowerIndex] as number,
-      openStandards[upperIndex] as number,
-      RUNBUNDLE_7_5_KM_WEIGHT,
+  if (!isSupportedDistance(distanceMetres)) {
+    throw new AgeGradeError(
+      'UNSUPPORTED_DISTANCE',
+      `${distanceMetres} m is outside the vendored road-table range ` +
+        `(${MIN_SUPPORTED_DISTANCE_METRES}-${MAX_SUPPORTED_DISTANCE_METRES} m).`,
     );
-    const ageFactor = interpolate(
-      factorRow[lowerIndex] as number,
-      factorRow[upperIndex] as number,
-      RUNBUNDLE_7_5_KM_WEIGHT,
-    );
-    return openStandard / ageFactor;
   }
 
-  const index = tableIndexFor(distanceMetres);
-  return (openStandards[index] as number) / (factorRow[index] as number);
+  const [lowerIndex, upperIndex] = bracketingTableIndices(distanceMetres);
+  if (lowerIndex === upperIndex) {
+    return (openStandards[lowerIndex] as number) / (factorRow[lowerIndex] as number);
+  }
+
+  const lowerDistance = TABLE_DISTANCES[lowerIndex] as number;
+  const upperDistance = TABLE_DISTANCES[upperIndex] as number;
+  const weight = (distanceMetres - lowerDistance) / (upperDistance - lowerDistance);
+  const openStandard = interpolate(
+    openStandards[lowerIndex] as number,
+    openStandards[upperIndex] as number,
+    weight,
+  );
+  const ageFactor = interpolate(
+    factorRow[lowerIndex] as number,
+    factorRow[upperIndex] as number,
+    weight,
+  );
+  return openStandard / ageFactor;
 }
 
 export interface AgeGradeInput {
@@ -182,7 +190,7 @@ export function calculateAgeGrade(input: AgeGradeInput): AgeGradeOutcome {
   if (!isSupportedDistance(input.distanceMetres)) {
     throw new AgeGradeError(
       'UNSUPPORTED_DISTANCE',
-      `${input.distanceMetres} m is not a distance this club races.`,
+      `${input.distanceMetres} m is outside the supported road-table range.`,
     );
   }
 

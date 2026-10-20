@@ -388,7 +388,10 @@ async function recalculate(prisma: PrismaClient, seasonId: string) {
   });
 
   const scoring = scoreSeason({
-    seasonType: season.type,
+    distances: {
+      TWO_LAP: season.twoLapMetres,
+      THREE_LAP: season.threeLapMetres,
+    },
     publishedOnly: false,
     rounds: season.rounds.map((round) => ({
       roundId: round.id,
@@ -410,6 +413,7 @@ async function recalculate(prisma: PrismaClient, seasonId: string) {
       await prisma.ttResult.updateMany({
         where: { roundId: round.roundId, runnerId: result.runnerId },
         data: {
+          distanceMetres: result.distanceMetres,
           finishingPosition: result.finishingPosition,
           finishingPoints: result.finishingPoints,
           tiedOnTime: result.tiedOnTime,

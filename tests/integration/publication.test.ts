@@ -11,6 +11,7 @@ import {
 import { prisma } from '@/lib/db';
 import {
   computeSeasonScoring,
+  createSeason,
   previewRoundPublication,
   publishRound,
   recalculateSeason,
@@ -21,6 +22,7 @@ import {
 import { updateRunner } from '@/services/runners';
 import { getPublicRoundView, getPublicSeasonView } from '@/services/public-queries';
 import { ServiceError } from '@/services/errors';
+import { SEASON_DISTANCES } from '@/domain/scoring';
 
 beforeEach(() => clearCookies());
 
@@ -456,6 +458,18 @@ describe('database constraints', () => {
 });
 
 describe('scoring versions', () => {
+  it('creates every summer season with the measured course distances', async () => {
+    await setUp();
+    const season = await createSeason({
+      name: 'Summer 2027',
+      type: 'SUMMER',
+      startDate: '2027-04-01',
+      endDate: '2027-09-30',
+    });
+
+    expect([season.twoLapMetres, season.threeLapMetres]).toEqual([5922, 7966]);
+  });
+
   it('stamps every result with the rules and age-grade versions', async () => {
     const { season } = await setUp();
     const runner = await createRunnerRecord({
@@ -473,11 +487,11 @@ describe('scoring versions', () => {
     // Written out in full rather than compared against the constant: a version
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
-    expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+    expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V3');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
   });
 
   it('migrates both season and result version metadata during recalculation', async () => {
@@ -505,7 +519,75 @@ describe('scoring versions', () => {
 
     const migratedSeason = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
     const migratedResult = await prisma.ttResult.findFirstOrThrow({ where: { roundId: round.id } });
-    expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
-    expect(migratedResult.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
+    expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
+    expect(migratedResult.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
+  });
+
+  it('previews then atomically migrates a summer season to the measured courses', async () => {
+    await setUp();
+    const season = await prisma.ttSeason.create({
+      data: {
+        name: 'Summer 2026 legacy distances',
+        slug: 'summer-2026-legacy-distances',
+        type: 'SUMMER',
+        startDate: new Date('2026-04-01T00:00:00.000Z'),
+        endDate: new Date('2026-09-30T00:00:00.000Z'),
+        clubYearLabel: '2026',
+        twoLapMetres: 6000,
+        threeLapMetres: 8000,
+        state: 'PUBLISHED',
+        scoringRulesVersion: 'RMPAC_SCORING_V3',
+        ageGradeVersion: 'ALAN_JONES_ROAD_2025_RUNBUNDLE_V1',
+      },
+    });
+    const twoLapRunner = await createRunnerRecord({
+      givenName: 'Measured Two',
+      familyName: 'Runner',
+      dateOfBirth: '1976-01-01',
+      category: 'FEMALE',
+    });
+    const threeLapRunner = await createRunnerRecord({
+      givenName: 'Measured Three',
+      familyName: 'Runner',
+      dateOfBirth: '1976-01-01',
+      category: 'FEMALE',
+    });
+    const round = await createRound(season.id, 1, '2026-04-01');
+    await saveRoundResults(round.id, [
+      { runnerId: twoLapRunner.id, distanceChoice: 'TWO_LAP', time: '30:00' },
+      { runnerId: threeLapRunner.id, distanceChoice: 'THREE_LAP', time: '30:00' },
+    ]);
+
+    const before = await prisma.ttResult.findMany({ where: { roundId: round.id } });
+    const preview = await computeSeasonScoring(season.id, {
+      publishedOnly: false,
+      distances: SEASON_DISTANCES.SUMMER,
+    });
+    expect(preview.rounds[0]?.results.map((result) => result.distanceMetres).sort()).toEqual([
+      5922, 7966,
+    ]);
+    const unchanged = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
+    expect([unchanged.twoLapMetres, unchanged.threeLapMetres]).toEqual([6000, 8000]);
+
+    await recalculateSeason(season.id, undefined, SEASON_DISTANCES.SUMMER);
+
+    const migratedSeason = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
+    const migrated = await prisma.ttResult.findMany({
+      where: { roundId: round.id },
+      orderBy: { distanceChoice: 'asc' },
+    });
+    expect([migratedSeason.twoLapMetres, migratedSeason.threeLapMetres]).toEqual([5922, 7966]);
+    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+    expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
+    expect(migrated.map((result) => result.distanceMetres).sort()).toEqual([5922, 7966]);
+
+    const beforeByRunner = new Map(before.map((result) => [result.runnerId, result]));
+    for (const result of migrated) {
+      expect(Number(result.ageGradePercent)).toBeLessThan(
+        Number(beforeByRunner.get(result.runnerId)?.ageGradePercent),
+      );
+      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V4');
+      expect(result.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
+    }
   });
 });
