@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { scoreSeason, type SeasonRoundInput } from '../season';
+import { SEASON_DISTANCES } from '../types';
 import { entry, mmss, utc, type FixtureRunner } from './fixtures';
 
 const runner = (id: string, category: 'MALE' | 'FEMALE', birth = '1986-01-01'): FixtureRunner => ({
@@ -39,7 +40,7 @@ function season(
 describe('scoreSeason', () => {
   it('threads each round forward as the comparison for the next', () => {
     const result = scoreSeason({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       publishedOnly: true,
       rounds: season([
         [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
@@ -62,7 +63,7 @@ describe('scoreSeason', () => {
 
   it('looks back past a missed round to the last result at that distance', () => {
     const result = scoreSeason({
-      seasonType: 'WINTER',
+      distances: SEASON_DISTANCES.WINTER,
       publishedOnly: true,
       rounds: season([
         [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
@@ -90,7 +91,7 @@ describe('scoreSeason', () => {
         entry(ALICE, 'TWO_LAP', mmss(25, 0)),
       ]),
     );
-    const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
 
     const leader = result.standings.MALE[0];
     expect(leader?.roundsCompleted).toBe(6);
@@ -107,7 +108,7 @@ describe('scoreSeason', () => {
     // engine correctly sees an improvement even though the clock did not move.
     // This is a property of age grading, not a bug in the comparison chain.
     const rounds = season(Array.from({ length: 6 }, () => [entry(BEN, 'TWO_LAP', mmss(20, 0))]));
-    const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
 
     const finalRound = result.rounds[5];
     expect(finalRound?.results[0]?.ageOnRoundDate).toBe(47);
@@ -125,7 +126,7 @@ describe('scoreSeason', () => {
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
     ]);
-    const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
     const alice = result.standings.FEMALE[0];
 
     expect(alice?.roundsCompleted).toBe(2);
@@ -139,7 +140,7 @@ describe('scoreSeason', () => {
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
       [entry(BEN, 'TWO_LAP', mmss(20, 0))],
     ]);
-    const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
     const alice = result.standings.FEMALE[0];
 
     expect(alice?.rounds[0]?.total).toBe(1);
@@ -151,7 +152,7 @@ describe('scoreSeason', () => {
     const rounds = season([
       [entry(ALICE, 'TWO_LAP', mmss(25, 0)), entry(CHLOE, 'TWO_LAP', mmss(25, 0))],
     ]);
-    const result = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
 
     const [first, second] = result.standings.FEMALE;
     expect(first?.bestFourTotal).toBe(second?.bestFourTotal);
@@ -170,11 +171,19 @@ describe('scoreSeason', () => {
       { publishedRounds: 2 },
     );
 
-    const published = scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    const published = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      publishedOnly: true,
+      rounds,
+    });
     expect(published.rounds).toHaveLength(2);
     expect(published.standings.FEMALE[0]?.roundsCompleted).toBe(2);
 
-    const withDraft = scoreSeason({ seasonType: 'WINTER', publishedOnly: false, rounds });
+    const withDraft = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      publishedOnly: false,
+      rounds,
+    });
     expect(withDraft.rounds).toHaveLength(3);
     // Standings still only reflect published rounds, even when drafts are scored.
     expect(withDraft.standings.FEMALE[0]?.roundsCompleted).toBe(2);
@@ -190,7 +199,7 @@ describe('recalculation after historical edits', () => {
     ]);
 
   const run = (rounds: SeasonRoundInput[]) =>
-    scoreSeason({ seasonType: 'WINTER', publishedOnly: true, rounds });
+    scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
 
   it('changing an earlier time changes the later improvement', () => {
     const before = run(buildRounds(mmss(25, 0)));

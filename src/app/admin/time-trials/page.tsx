@@ -38,7 +38,7 @@ export default async function TimeTrialsAdminPage() {
         <h1 style={{ fontSize: '1.75rem', textTransform: 'uppercase' }}>Time trials</h1>
         <p className="muted">
           Two six-round seasons a year. Winter runs October to March over 5 km and 7.5 km; summer
-          runs April to September over 6 km and 8 km.
+          runs April to September over the measured 3.68-mile and 4.95-mile courses.
         </p>
       </header>
 

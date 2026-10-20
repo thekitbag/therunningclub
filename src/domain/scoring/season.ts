@@ -12,7 +12,7 @@ import {
   ROUNDS_PER_SEASON,
   SCORING_RULES_VERSION,
   type ScoringCategory,
-  type SeasonType,
+  type SeasonDistances,
 } from './types';
 
 export interface SeasonRoundInput {
@@ -28,7 +28,8 @@ export interface SeasonRoundInput {
 }
 
 export interface SeasonScoringInput {
-  readonly seasonType: SeasonType;
+  /** Authoritative distance snapshot stored on the season. */
+  readonly distances: SeasonDistances;
   readonly rounds: readonly SeasonRoundInput[];
   /** Restrict the improvement chain and standings to published rounds. */
   readonly publishedOnly: boolean;
@@ -86,7 +87,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
     if (input.publishedOnly && !round.published) continue;
 
     const scoring = scoreRound({
-      seasonType: input.seasonType,
+      distances: input.distances,
       roundOrdinal: round.ordinal,
       roundDate: round.date,
       entries: round.entries,

@@ -9,10 +9,10 @@ import {
   ROUNDS_PER_SEASON,
   SCORING_RULES_VERSION,
   SEASON_DISTANCES,
-  distanceMetresFor,
   parseElapsedTime,
   scoreSeason,
   type DistanceChoice,
+  type SeasonDistances,
   type SeasonScoring,
   type SeasonRoundInput,
   type SeasonType,
@@ -329,7 +329,10 @@ export async function saveRoundResults(
           roundId,
           runnerId: entry.runnerId,
           distanceChoice: entry.distanceChoice,
-          distanceMetres: distanceMetresFor(round.season.type, entry.distanceChoice),
+          distanceMetres:
+            entry.distanceChoice === 'TWO_LAP'
+              ? round.season.twoLapMetres
+              : round.season.threeLapMetres,
           elapsedMilliseconds: entry.elapsedMilliseconds,
           finishingPosition: 0,
           finishingPoints: 0,
@@ -368,7 +371,7 @@ export async function saveRoundResults(
  */
 export async function computeSeasonScoring(
   seasonId: string,
-  options: { publishedOnly: boolean },
+  options: { publishedOnly: boolean; distances?: SeasonDistances },
   db: Db = prisma,
 ): Promise<SeasonScoring> {
   const season = await db.ttSeason.findUnique({
@@ -404,8 +407,13 @@ export async function computeSeasonScoring(
     })),
   }));
 
+  const distances = options.distances ?? {
+    TWO_LAP: season.twoLapMetres,
+    THREE_LAP: season.threeLapMetres,
+  };
+
   return scoreSeason({
-    seasonType: season.type,
+    distances,
     rounds,
     publishedOnly: options.publishedOnly,
   });
@@ -419,18 +427,23 @@ export async function computeSeasonScoring(
  * change. Runs inside the caller's transaction when one is supplied so that a
  * publication and its recalculation commit together or not at all.
  */
-export async function recalculateSeason(seasonId: string, db?: Db): Promise<SeasonScoring> {
+export async function recalculateSeason(
+  seasonId: string,
+  db?: Db,
+  distances?: SeasonDistances,
+): Promise<SeasonScoring> {
   const run = async (tx: Db) => {
     // Score with drafts included: an administrator previewing a draft round
     // still needs its numbers, and the `published` flag on each round decides
     // what reaches the public standings.
-    const scoring = await computeSeasonScoring(seasonId, { publishedOnly: false }, tx);
+    const scoring = await computeSeasonScoring(seasonId, { publishedOnly: false, distances }, tx);
 
     for (const round of scoring.rounds) {
       for (const result of round.results) {
         await tx.ttResult.updateMany({
           where: { roundId: round.roundId, runnerId: result.runnerId },
           data: {
+            distanceMetres: result.distanceMetres,
             finishingPosition: result.finishingPosition,
             finishingPoints: result.finishingPoints,
             tiedOnTime: result.tiedOnTime,
@@ -467,6 +480,8 @@ export async function recalculateSeason(seasonId: string, db?: Db): Promise<Seas
     await tx.ttSeason.update({
       where: { id: seasonId },
       data: {
+        twoLapMetres: distances?.TWO_LAP,
+        threeLapMetres: distances?.THREE_LAP,
         scoringRulesVersion: scoring.scoringRulesVersion,
         ageGradeVersion: AGE_GRADE_VERSION,
       },

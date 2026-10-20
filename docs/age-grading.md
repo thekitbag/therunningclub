@@ -5,7 +5,7 @@
 The application reproduces the road calculation used by RunBundle after its
 14 August 2025 update. That calculator uses the Alan Jones 2025 male and female
 road-running tables. The implementation is frozen and versioned as
-`ALAN_JONES_ROAD_2025_RUNBUNDLE_V1`.
+`ALAN_JONES_ROAD_2025_RUNBUNDLE_V2`.
 
 RunBundle is not called at runtime. Its public form is not an application API,
 and either its availability or its calculation can change. The required source
@@ -42,29 +42,30 @@ workbooks' `AgeStanSec` values are deliberately not used: those cells are
 rounded to whole seconds, while RunBundle calculates an age standard from the
 open standard and factor.
 
-For table-native 5 km, 6 km, and 8 km results:
+For a table-native distance:
 
 ```text
 age standard = open-class standard / age factor
 age grade    = age standard / actual time * 100
 ```
 
-## RunBundle-compatible 7.5 km calculation
+## RunBundle-compatible non-standard distances
 
-RunBundle treats 7.5 km as a non-standard road distance and linearly
-interpolates between the closest source-table distances: 4 miles and 8 km.
-Both inputs to the calculation are interpolated independently.
+RunBundle linearly interpolates every non-standard road distance between the
+closest bracketing source-table distances. Both inputs to the calculation are
+interpolated independently. Winter 7.5 km and summer 7,966 m are bracketed by
+4 miles and 8 km; summer 5,922 m is bracketed by 5 km and 6 km.
 
 ```text
-lower distance = 6,437.376 m
-upper distance = 8,000 m
-u = (7,500 - lower distance) / (upper distance - lower distance)
+lower distance = closest table distance below the race distance
+upper distance = closest table distance above the race distance
+u = (race distance - lower distance) / (upper distance - lower distance)
 
-open standard = open standard at 4 miles * (1 - u)
-              + open standard at 8 km    * u
+open standard = open standard at lower distance * (1 - u)
+              + open standard at upper distance * u
 
-age factor = age factor at 4 miles * (1 - u)
-           + age factor at 8 km    * u
+age factor = age factor at lower distance * (1 - u)
+           + age factor at upper distance * u
 
 age standard = open standard / age factor
 age grade    = age standard / actual time * 100
@@ -73,6 +74,10 @@ age grade    = age standard / actual time * 100
 For example, RunBundle returns `81.25%` for a 50-year-old female road runner
 completing 7.5 km in 30:00. The application calculates the unrounded value as
 approximately `81.2513621145%` and displays `81.25%`.
+
+For the measured summer courses, the same runner and time display as `64.01%`
+at 5,922 m (3.68 miles) and `86.32%` at 7,966 m (4.95 miles), matching
+RunBundle's mile inputs on 20 October 2026.
 
 ## Age and precision
 
@@ -108,3 +113,9 @@ data migration, not a routine dependency update. Use `scripts/rescore-season.ts`
 to preview each affected season, review changes to age grades and improvement
 points, and then apply a full-season recalculation. A season and all its results
 must use the same age-grade version.
+
+The same command migrates every targeted summer season from the old nominal
+6,000 m / 8,000 m values to the measured 5,922 m / 7,966 m courses. The dry run
+shows the stored and target distances without writing. Apply each summer season
+by slug only after reviewing that preview; distance fields, age grades, points,
+and version metadata are then rewritten together.

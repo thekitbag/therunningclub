@@ -2,10 +2,9 @@ import { AgeGradeError, calculateAgeGrade, roundToTwoDecimals } from './age-grad
 import { rankByCompetition } from './ranking';
 import {
   SCORING_RULES_VERSION,
-  distanceMetresFor,
   type DistanceChoice,
   type ScoringCategory,
-  type SeasonType,
+  type SeasonDistances,
 } from './types';
 
 /**
@@ -52,7 +51,8 @@ export interface PriorResultInput {
 }
 
 export interface RoundScoringInput {
-  readonly seasonType: SeasonType;
+  /** Authoritative distance snapshot stored on the season. */
+  readonly distances: SeasonDistances;
   readonly roundOrdinal: number;
   readonly roundDate: Date;
   readonly entries: readonly RoundEntryInput[];
@@ -146,7 +146,7 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
   }
 
   const working: Working[] = input.entries.map((entry) => {
-    const distanceMetres = distanceMetresFor(input.seasonType, entry.distanceChoice);
+    const distanceMetres = input.distances[entry.distanceChoice];
     let ageGradePercent: number | null = null;
     let ageOnRoundDate: number | null = null;
 

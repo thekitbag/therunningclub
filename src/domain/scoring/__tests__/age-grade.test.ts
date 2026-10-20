@@ -96,6 +96,22 @@ describe('ageStandardSeconds', () => {
     expect(ageStandardSeconds('MALE', 40, 7500)).toBeCloseTo(openStandard / ageFactor, 10);
   });
 
+  it('interpolates the measured two-lap summer course between 5 km and 6 km', () => {
+    const weight = (5922 - 5000) / (6000 - 5000);
+    const openStandard = 769 * (1 - weight) + 930 * weight;
+    const ageFactor = 0.9475 * (1 - weight) + 0.9517 * weight;
+
+    expect(ageStandardSeconds('MALE', 40, 5922)).toBeCloseTo(openStandard / ageFactor, 10);
+  });
+
+  it('interpolates the measured three-lap summer course between 4 miles and 8 km', () => {
+    const weight = (7966 - 6437.376) / (8000 - 6437.376);
+    const openStandard = 1000 * (1 - weight) + 1255 * weight;
+    const ageFactor = 0.9534 * (1 - weight) + 0.9584 * weight;
+
+    expect(ageStandardSeconds('MALE', 40, 7966)).toBeCloseTo(openStandard / ageFactor, 10);
+  });
+
   it('refuses ages outside the published tables instead of inventing a factor', () => {
     expect(() => ageStandardSeconds('MALE', 4, 5000)).toThrow(AgeGradeError);
     expect(() => ageStandardSeconds('MALE', 101, 5000)).toThrow(/outside the published/);
@@ -189,7 +205,23 @@ describe('calculateAgeGrade', () => {
 
     expect(outcome.percent).toBeCloseTo(81.2513621145, 9);
     expect(outcome.displayPercent).toBe(81.25);
-    expect(outcome.version).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V1');
+    expect(outcome.version).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
+  });
+
+  it('matches current RunBundle for both measured summer course distances', () => {
+    const base = {
+      category: 'FEMALE' as const,
+      dateOfBirth: utc('1976-01-01'),
+      eventDate: utc('2026-01-01'),
+      elapsedMilliseconds: 30 * 60 * 1000,
+    };
+    const twoLap = calculateAgeGrade({ ...base, distanceMetres: 5922 });
+    const threeLap = calculateAgeGrade({ ...base, distanceMetres: 7966 });
+
+    expect(twoLap.percent).toBeCloseTo(64.0064718831, 9);
+    expect(twoLap.displayPercent).toBe(64.01);
+    expect(threeLap.percent).toBeCloseTo(86.3177999542, 9);
+    expect(threeLap.displayPercent).toBe(86.32);
   });
 
   it('rejects unsupported distances and non-positive times', () => {

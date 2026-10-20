@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { scoreRound } from '../time-trial';
 import { buildStandings, type SeasonRoundScoring } from '../season';
+import { SEASON_DISTANCES } from '../types';
 import { entry, mmss, priorForImprovement, utc, type FixtureRunner } from './fixtures';
 
 /**
@@ -28,7 +29,7 @@ import { entry, mmss, priorForImprovement, utc, type FixtureRunner } from './fix
  * sheet here awards a fixed ten to each distance winner and sizes improvement
  * points by the number of improvers. The committee's summer 2026 workbook
  * ("2026 Summer Time Trial.xlsx") sizes both ladders by field size instead,
- * which is what `RMPAC_SCORING_V3` implements and what this file now asserts.
+ * which V3 introduced, V4 retains, and this file asserts.
  *
  * The published values are kept alongside the current ones so the change stays
  * visible and so this round can be re-checked if the committee confirms a
@@ -108,7 +109,7 @@ const PRIOR_RESULTS = ALL_ENTRIES.map((e) => {
 });
 
 const scored = scoreRound({
-  seasonType: 'WINTER',
+  distances: SEASON_DISTANCES.WINTER,
   roundOrdinal: 6,
   roundDate: ROUND_DATE,
   entries: ALL_ENTRIES,

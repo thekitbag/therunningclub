@@ -30,7 +30,8 @@ functions in `src/domain/scoring` and are specified in
 [`../therunningclub_project/specs/scoring-rules.md`](../therunningclub_project/specs/scoring-rules.md).
 
 **Time trial** — two six-round seasons a year. Winter is October to March over
-5 km and 7.5 km; summer is April to September over 6 km and 8 km.
+5 km and 7.5 km; summer is April to September over the measured 3.68-mile
+(5.922 km) and 4.95-mile (7.966 km) courses.
 
 - Finishing points rank each distance separately but across categories: 10 for
   the winner down to 1 for tenth, nothing below.

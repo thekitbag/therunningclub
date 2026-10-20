@@ -1,8 +1,11 @@
 # Time-trial scoring, 2026
 
-What `RMPAC_SCORING_V3` implements, where it came from, and the two points that
-are still open. Written after the committee supplied
-`2026 Summer Time Trial.xlsx` in September 2026.
+What `RMPAC_SCORING_V4` implements, where it came from, and the two points that
+are still open. V4 retains the V3 points ladders documented below and makes the
+club-measured summer courses authoritative: 3.68 miles (5,922 m) for two laps
+and 4.95 miles (7,966 m) for three. Written after the committee supplied
+`2026 Summer Time Trial.xlsx` in September 2026 and confirmed the course
+distances in October 2026.
 
 ## The rules
 
