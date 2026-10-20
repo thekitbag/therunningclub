@@ -28,6 +28,11 @@ function formWith(token: string | null): FormData {
   return formData;
 }
 
+function changeLastCharacter(value: string): string {
+  const replacement = value.endsWith('x') ? 'y' : 'x';
+  return `${value.slice(0, -1)}${replacement}`;
+}
+
 describe('token issue and verify', () => {
   it('accepts a token verified against the session it was issued for', () => {
     const token = issueCsrfToken('session-1');
@@ -54,15 +59,15 @@ describe('token issue and verify', () => {
     const token = issueCsrfToken('session-1');
     const [nonce, issuedAt, signature] = token.split('.') as [string, string, string];
 
-    expect(verifyCsrfToken(`${nonce}.${issuedAt}.${signature.slice(0, -1)}x`, 'session-1')).toBe(
-      false,
-    );
-    expect(verifyCsrfToken(`${nonce.slice(0, -1)}x.${issuedAt}.${signature}`, 'session-1')).toBe(
-      false,
-    );
-    expect(verifyCsrfToken(`${nonce}.${issuedAt.slice(0, -1)}z.${signature}`, 'session-1')).toBe(
-      false,
-    );
+    expect(
+      verifyCsrfToken(`${nonce}.${issuedAt}.${changeLastCharacter(signature)}`, 'session-1'),
+    ).toBe(false);
+    expect(
+      verifyCsrfToken(`${changeLastCharacter(nonce)}.${issuedAt}.${signature}`, 'session-1'),
+    ).toBe(false);
+    expect(
+      verifyCsrfToken(`${nonce}.${changeLastCharacter(issuedAt)}.${signature}`, 'session-1'),
+    ).toBe(false);
   });
 
   it('rejects missing, empty and malformed tokens', () => {
