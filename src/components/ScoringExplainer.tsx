@@ -20,9 +20,10 @@ export function TimeTrialExplainer() {
         <ul>
           <li>
             <strong>Finishing points.</strong> The two-lap and three-lap fields are ranked
-            separately by time. The winner of each distance gets 10 points, second gets 9, and so on
-            down to 1 point for tenth. Eleventh place and below score no finishing points. Men and
-            women run in the same field for this — the separate tables below just show the same
+            separately by time, but both use a points ladder based on whichever distance has more
+            finishers. If the larger field has 15 runners, the winner of each distance gets 15
+            points, second gets 14, and so on. Everyone who finishes scores at least one point. Men
+            and women run in the same field for this — the separate tables below just show the same
             points split by category.
           </li>
           <li>
@@ -31,14 +32,17 @@ export function TimeTrialExplainer() {
             other fairly.
           </li>
           <li>
-            <strong>Improvement points.</strong> If your age grade beat your last result at the same
-            distance this season, you are an improver. Everyone who improved — both distances, both
-            categories — is ranked together. If ten people improved, the biggest improvement gets 10
-            points, the next 9, and so on down to 1.
+            <strong>Improvement points.</strong> Your age grade is compared with your most recent
+            earlier result, even if that was at the other distance or in an earlier season. Everyone
+            who improved — both distances, both categories — is ranked together. The points ladder
+            is based on everyone in the round who had an earlier age grade to compare with,
+            including runners who did not improve. If 15 runners had a comparison, the biggest
+            improvement gets 15 points, the next gets 14, and so on. Only positive improvements
+            score.
           </li>
           <li>
-            <strong>No comparison yet.</strong> Your first run of the season, or your first run at a
-            distance you have not tried yet, has nothing to improve on, so it scores no improvement
+            <strong>No comparison yet.</strong> If you have no earlier published result or imported
+            historical age grade, there is nothing to improve on, so you score no improvement
             points. That is not a penalty — it just means the comparison starts next time.
           </li>
           <li>
