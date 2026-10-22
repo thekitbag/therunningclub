@@ -8,9 +8,9 @@
  *     scripts/sql/sync-member-roster-2026.sql replaces the invented dates of
  *     birth with real ones, every stored age grade and improvement score is
  *     stale until this runs.
- *  2. The scoring rules changed to RMPAC_SCORING_V3 (see
- *     docs/scoring-rules-2026.md). Results stored under V2 carry the old
- *     ladders until they are replayed.
+ *  2. The scoring rules are versioned (see docs/scoring-rules-2026.md).
+ *     Results stored under an earlier version carry the old ladders until they
+ *     are replayed.
  *  3. The age-grade engine changed from the 2015 tables to the frozen
  *     RunBundle-compatible Alan Jones 2025 calculation. Every affected age
  *     grade and improvement ranking must be replayed as one season.

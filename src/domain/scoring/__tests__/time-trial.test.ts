@@ -249,7 +249,7 @@ describe('improvement points', () => {
     expect(byId['f-two']?.improvementPoints).toBe(1);
   });
 
-  it('ignores non-improvements and awards nothing for going backwards', () => {
+  it('excludes non-improvements from both eligibility and the points ladder', () => {
     const entries = [
       entry(runner('better', 'MALE'), 'TWO_LAP', mmss(20, 0)),
       entry(runner('same', 'MALE'), 'TWO_LAP', mmss(21, 0)),
@@ -267,9 +267,8 @@ describe('improvement points', () => {
 
     expect(result.improverCount).toBe(1);
     const byId = Object.fromEntries(result.results.map((r) => [r.runnerId, r]));
-    // All three had a comparison available, so the ladder tops at 3 even though
-    // only one of them improved.
-    expect(byId.better?.improvementPoints).toBe(3);
+    // All three had a comparison, but only the positive change forms the ladder.
+    expect(byId.better?.improvementPoints).toBe(1);
     // Standing still is not improving, so it scores nothing.
     expect(byId.same?.improvementPoints).toBe(0);
     expect(byId.same?.improvement).toBeCloseTo(0, 9);

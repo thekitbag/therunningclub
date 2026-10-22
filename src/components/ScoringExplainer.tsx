@@ -35,10 +35,9 @@ export function TimeTrialExplainer() {
             <strong>Improvement points.</strong> Your age grade is compared with your most recent
             earlier result, even if that was at the other distance or in an earlier season. Everyone
             who improved — both distances, both categories — is ranked together. The points ladder
-            is based on everyone in the round who had an earlier age grade to compare with,
-            including runners who did not improve. If 15 runners had a comparison, the biggest
-            improvement gets 15 points, the next gets 14, and so on. Only positive improvements
-            score.
+            is based only on those positive improvements. If 8 runners improved, the biggest
+            improvement gets 8 points, the next gets 7, and so on. Runners whose age grade stayed
+            the same or went down do not score and do not make that ladder larger.
           </li>
           <li>
             <strong>No comparison yet.</strong> If you have no earlier published result or imported
