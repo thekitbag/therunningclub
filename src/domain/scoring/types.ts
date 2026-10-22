@@ -38,8 +38,11 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * V4 makes the measured summer course distances authoritative: 3.68 miles
  * (5,922 m) for two laps and 4.95 miles (7,966 m) for three. Scoring consumes
  * each season's stored snapshot so historical migrations are deliberate.
+ * V5 carries the previous-age-grade comparison across seasons and lap choices.
+ * V6 corrects the improvement ladder so only positive improvers determine its
+ * size; runners with a comparison who did not improve no longer inflate it.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V5';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V6';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;

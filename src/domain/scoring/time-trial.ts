@@ -123,9 +123,9 @@ export interface RoundScoring {
  *     distance takes that many points and every place steps down by one. Nobody
  *     scores zero for finishing.
  *  2. Improvement points rank every positive age-grade improvement in one pool
- *     spanning both distances and both categories. The ladder is sized by how
- *     many runners had a comparable earlier result — including those who got
- *     slower — so the largest improvement takes that many points.
+ *     spanning both distances and both categories. The ladder is sized by the
+ *     number of runners who actually improved, so the largest improvement
+ *     takes that many points.
  *
  * Displaying separate male and female tables later is a filter over these
  * numbers, never a recalculation.
@@ -234,17 +234,14 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     return Math.abs(difference) <= IMPROVEMENT_TIE_EPSILON ? 0 : difference;
   });
 
-  // The ladder is sized by everyone who had a comparable earlier result, not by
-  // how many of them improved. Someone who got slower still widens the field the
-  // improvers are scored against, which is what makes a big round worth more.
-  // In the club's August 2026 round five runners improved but twelve had a
-  // comparison available, so the largest improvement scored 12, not 5.
-  const comparableCount = working.filter((w) => w.previous !== null).length;
   const improverCount = improvers.length;
 
   for (const { item, position } of rankedImprovers) {
     item.improvementPosition = position;
-    item.improvementPoints = Math.max(comparableCount + 1 - position, 0);
+    // Only positive improvements form the ladder. Runners whose age grade was
+    // unchanged or went backwards neither score nor inflate another runner's
+    // award. Competition ranking preserves ties and skips the following place.
+    item.improvementPoints = Math.max(improverCount + 1 - position, 0);
   }
 
   const results: ScoredResult[] = working.map((w) => ({
