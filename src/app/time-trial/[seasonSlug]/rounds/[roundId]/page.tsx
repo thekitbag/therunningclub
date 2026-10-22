@@ -46,19 +46,30 @@ export default async function RoundPage({
       <RoundTable
         title={`Two laps · ${formatKilometres(view.byDistance.TWO_LAP.metres)}`}
         rows={view.byDistance.TWO_LAP.rows}
+        pointsMode={view.season.pointsMode}
       />
       <RoundTable
         title={`Three laps · ${formatKilometres(view.byDistance.THREE_LAP.metres)}`}
         rows={view.byDistance.THREE_LAP.rows}
+        pointsMode={view.season.pointsMode}
       />
 
-      <TimeTrialExplainer />
+      <TimeTrialExplainer pointsMode={view.season.pointsMode} />
     </div>
   );
 }
 
-function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeasonResultRow[] }) {
+function RoundTable({
+  title,
+  rows,
+  pointsMode,
+}: {
+  title: string;
+  rows: readonly PublicSeasonResultRow[];
+  pointsMode: 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY';
+}) {
   const headingId = title.toLowerCase().replace(/[^a-z]+/g, '-');
+  const improvementOnly = pointsMode === 'IMPROVEMENT_ONLY';
 
   return (
     <section aria-labelledby={headingId}>
@@ -76,10 +87,13 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
         >
           <table>
             <caption>
-              {title}. Round total is finishing points plus improvement points. A dash in the
-              previous-grade column means there was no earlier published age grade or imported
-              opening baseline, so no improvement points could be earned. Comparisons can cross
-              seasons and lap choices.
+              {title}.{' '}
+              {improvementOnly
+                ? 'Only improvement points count towards this season.'
+                : 'Round total is finishing points plus improvement points.'}{' '}
+              A dash in the previous-grade column means there was no earlier published age grade or
+              imported opening baseline, so no improvement points could be earned. Comparisons can
+              cross seasons and lap choices.
             </caption>
             <thead>
               <tr>
@@ -88,9 +102,11 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
                 <th scope="col" className="num nowrap">
                   Time
                 </th>
-                <th scope="col" className="num">
-                  <abbr title="Finishing points">Fin</abbr>
-                </th>
+                {!improvementOnly ? (
+                  <th scope="col" className="num">
+                    <abbr title="Finishing points">Fin</abbr>
+                  </th>
+                ) : null}
                 <th scope="col" className="num nowrap">
                   Age grade
                 </th>
@@ -101,11 +117,19 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
                   Change
                 </th>
                 <th scope="col" className="num">
-                  <abbr title="Improvement points">Imp</abbr>
+                  <abbr
+                    title={
+                      improvementOnly ? 'Improvement points — round score' : 'Improvement points'
+                    }
+                  >
+                    {improvementOnly ? 'Score' : 'Imp'}
+                  </abbr>
                 </th>
-                <th scope="col" className="num">
-                  Total
-                </th>
+                {!improvementOnly ? (
+                  <th scope="col" className="num">
+                    Total
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody>
@@ -123,7 +147,7 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
                     {row.runner.displayName}
                   </th>
                   <td className="num nowrap">{formatElapsedTime(row.elapsedMilliseconds)}</td>
-                  <td className="num">{row.finishingPoints}</td>
+                  {!improvementOnly ? <td className="num">{row.finishingPoints}</td> : null}
                   <td className="num nowrap">
                     {row.ageGradePercent === null ? '—' : `${row.ageGradePercent.toFixed(2)}%`}
                   </td>
@@ -151,10 +175,14 @@ function RoundTable({ title, rows }: { title: string; rows: readonly PublicSeaso
                       </span>
                     )}
                   </td>
-                  <td className="num">{row.improvementPoints}</td>
-                  <td className="num" style={{ fontWeight: 800 }}>
-                    {row.roundTotal}
+                  <td className="num" style={{ fontWeight: improvementOnly ? 800 : undefined }}>
+                    {row.improvementPoints}
                   </td>
+                  {!improvementOnly ? (
+                    <td className="num" style={{ fontWeight: 800 }}>
+                      {row.roundTotal}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

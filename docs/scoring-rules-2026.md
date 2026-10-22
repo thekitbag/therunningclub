@@ -1,7 +1,9 @@
 # Time-trial scoring, 2026
 
-What `RMPAC_SCORING_V6` implements, where it came from, and the remaining open
-point. V6 restores the authoritative improvement rule after a live result
+What `RMPAC_SCORING_V7` implements, where it came from, and the remaining open
+point. V7 snapshots the points method on each season so Winter 2026/27 can use
+an improvement-only leaderboard without rewriting Summer 2026. V6 restored the
+authoritative improvement rule after a live result
 exposed the earlier spreadsheet interpretation: only positive improvers
 determine the ladder's size. V5 carries each runner's last published age grade
 across lap choices and season boundaries. V4 made the club-measured summer
@@ -40,6 +42,13 @@ Standing still or going backwards neither scores nor increases another
 runner's points.
 
 **Season standing.** Best four round totals, unchanged.
+
+**Season points method.** Summer 2026 keeps combined finishing and improvement
+points. Winter 2026/27 awards improvement points only: finish position and time
+remain visible, but finishing points are zero and the round total equals the
+improvement points. The best four round scores still count. The method is
+stored on the season, never inferred from its type or dates, and becomes fixed
+when its first round is published.
 
 ## Evidence
 

@@ -8,6 +8,7 @@ import type {
   ScoredResult,
   SeasonStanding,
   SeasonType,
+  TimeTrialPointsMode,
 } from '@/domain/scoring';
 
 /**
@@ -27,6 +28,7 @@ export interface PublicSeasonSummary {
   readonly name: string;
   readonly slug: string;
   readonly type: SeasonType;
+  readonly pointsMode: TimeTrialPointsMode;
   readonly startDate: Date;
   readonly endDate: Date;
   readonly clubYearLabel: string;
@@ -87,6 +89,7 @@ export async function listPublishedSeasons(): Promise<PublicSeasonSummary[]> {
       name: true,
       slug: true,
       type: true,
+      pointsMode: true,
       startDate: true,
       endDate: true,
       clubYearLabel: true,
@@ -101,6 +104,7 @@ export async function listPublishedSeasons(): Promise<PublicSeasonSummary[]> {
     name: season.name,
     slug: season.slug,
     type: season.type,
+    pointsMode: season.pointsMode,
     startDate: season.startDate,
     endDate: season.endDate,
     clubYearLabel: season.clubYearLabel,
@@ -146,6 +150,7 @@ export async function getPublicSeasonView(slug: string): Promise<PublicSeasonVie
       name: true,
       slug: true,
       type: true,
+      pointsMode: true,
       state: true,
       startDate: true,
       endDate: true,
@@ -212,6 +217,7 @@ export async function getPublicSeasonView(slug: string): Promise<PublicSeasonVie
       name: season.name,
       slug: season.slug,
       type: season.type,
+      pointsMode: season.pointsMode,
       startDate: season.startDate,
       endDate: season.endDate,
       clubYearLabel: season.clubYearLabel,
@@ -255,6 +261,7 @@ export async function getPublicRoundView(
       name: true,
       slug: true,
       type: true,
+      pointsMode: true,
       state: true,
       startDate: true,
       endDate: true,
@@ -325,6 +332,7 @@ export async function getPublicRoundView(
       name: season.name,
       slug: season.slug,
       type: season.type,
+      pointsMode: season.pointsMode,
       startDate: season.startDate,
       endDate: season.endDate,
       clubYearLabel: season.clubYearLabel,

@@ -76,6 +76,7 @@ async function main(): Promise<void> {
         type: true,
         twoLapMetres: true,
         threeLapMetres: true,
+        pointsMode: true,
         scoringRulesVersion: true,
         ageGradeVersion: true,
       },
@@ -93,6 +94,7 @@ async function main(): Promise<void> {
 
     console.log(
       `Season:   ${season.name} (${season.slug})\n` +
+        `Points:   ${season.pointsMode}\n` +
         `Rules:    ${season.scoringRulesVersion}\n` +
         `Age grade: ${season.ageGradeVersion}`,
     );

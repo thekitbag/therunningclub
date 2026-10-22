@@ -115,6 +115,7 @@ async function main(): Promise<void> {
         startDate: utc('2025-10-01'),
         endDate: utc('2026-03-31'),
         clubYearLabel: '2025/26',
+        pointsMode: 'FINISHING_AND_IMPROVEMENT',
         twoLapMetres: SEASON_DISTANCES.WINTER.TWO_LAP,
         threeLapMetres: SEASON_DISTANCES.WINTER.THREE_LAP,
         state: 'PUBLISHED',
@@ -281,6 +282,7 @@ async function recalculate(prisma: PrismaClient, seasonId: string): Promise<void
       TWO_LAP: season.twoLapMetres,
       THREE_LAP: season.threeLapMetres,
     },
+    pointsMode: season.pointsMode,
     publishedOnly: false,
     rounds: season.rounds.map((round) => ({
       roundId: round.id,

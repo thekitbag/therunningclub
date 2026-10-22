@@ -42,6 +42,11 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
           laps {formatKilometres(view.season.twoLapMetres)} · Three laps{' '}
           {formatKilometres(view.season.threeLapMetres)}
         </p>
+        <p className="muted">
+          {view.season.pointsMode === 'IMPROVEMENT_ONLY'
+            ? 'Leaderboard: improvement points only'
+            : 'Leaderboard: finishing and improvement points'}
+        </p>
         <LastUpdated at={view.season.lastUpdatedAt} />
       </header>
 
@@ -103,7 +108,11 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
             <SeasonStandingsTable
               rows={view.standings.MALE}
               roundOrdinals={roundOrdinals}
-              caption="Men’s best-four season standings"
+              caption={
+                view.season.pointsMode === 'IMPROVEMENT_ONLY'
+                  ? 'Men’s best-four improvement-points standings'
+                  : 'Men’s best-four season standings'
+              }
             />
           </section>
 
@@ -114,7 +123,11 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
             <SeasonStandingsTable
               rows={view.standings.FEMALE}
               roundOrdinals={roundOrdinals}
-              caption="Women’s best-four season standings"
+              caption={
+                view.season.pointsMode === 'IMPROVEMENT_ONLY'
+                  ? 'Women’s best-four improvement-points standings'
+                  : 'Women’s best-four season standings'
+              }
             />
           </section>
 
@@ -131,7 +144,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
         </EmptyState>
       )}
 
-      <TimeTrialExplainer />
+      <TimeTrialExplainer pointsMode={view.season.pointsMode} />
     </div>
   );
 }

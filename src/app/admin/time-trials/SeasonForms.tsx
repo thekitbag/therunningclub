@@ -111,6 +111,19 @@ export function SeasonForms({
               />
               <FieldError id="season-end-error" message={createState.fieldErrors?.endDate} />
             </div>
+
+            <div className="field">
+              <label htmlFor="season-points-mode">Points method</label>
+              <select
+                id="season-points-mode"
+                name="pointsMode"
+                defaultValue="FINISHING_AND_IMPROVEMENT"
+              >
+                <option value="FINISHING_AND_IMPROVEMENT">Finishing and improvement points</option>
+                <option value="IMPROVEMENT_ONLY">Improvement points only</option>
+              </select>
+              <p className="field__hint">This becomes fixed once the first round is published.</p>
+            </div>
           </div>
 
           <div className="btn-row">

@@ -31,6 +31,7 @@ import {
   createSeason,
   publishRound,
   saveRoundResults,
+  setSeasonPointsMode,
   setSeasonState,
   unpublishRound,
   updateRound,
@@ -266,11 +267,33 @@ export async function createSeasonAction(
     await createSeason({
       name: text(formData, 'name'),
       type: text(formData, 'type') as 'SUMMER' | 'WINTER',
+      pointsMode: text(formData, 'pointsMode') as 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY',
       startDate: text(formData, 'startDate'),
       endDate: text(formData, 'endDate'),
     });
     revalidatePath('/admin/time-trials');
     return { status: 'success', message: 'Season created.' };
+  } catch (error) {
+    rethrowIfFrameworkSignal(error);
+    return toActionState(error, '/admin/time-trials');
+  }
+}
+
+export async function setSeasonPointsModeAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    await guardMutation(formData);
+    const seasonId = text(formData, 'seasonId');
+    await setSeasonPointsMode(
+      seasonId,
+      text(formData, 'pointsMode') as 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY',
+    );
+    revalidatePath('/admin/time-trials');
+    revalidatePath(`/admin/time-trials/${seasonId}`);
+    revalidatePathsForPublicResults();
+    return { status: 'success', message: 'Points method updated and draft scores recalculated.' };
   } catch (error) {
     rethrowIfFrameworkSignal(error);
     return toActionState(error, '/admin/time-trials');

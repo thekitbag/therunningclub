@@ -15,6 +15,7 @@ const ROUND_DATE = utc('2026-01-20');
 function score(entries: readonly RoundEntryInput[], priorResults = []) {
   return scoreRound({
     distances: SEASON_DISTANCES.WINTER,
+    pointsMode: 'FINISHING_AND_IMPROVEMENT',
     roundOrdinal: 2,
     roundDate: ROUND_DATE,
     entries,
@@ -174,6 +175,7 @@ describe('improvement points', () => {
   function scoreWithPriors(entries: readonly RoundEntryInput[], priors: unknown[]) {
     return scoreRound({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries,
@@ -206,6 +208,7 @@ describe('improvement points', () => {
     const a = runner('a', 'MALE');
     const result = scoreRound({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       roundOrdinal: 5,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
@@ -309,6 +312,7 @@ describe('round totals', () => {
     const a = runner('a', 'MALE');
     const graded = scoreRound({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
@@ -318,6 +322,7 @@ describe('round totals', () => {
 
     const result = scoreRound({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       roundOrdinal: 2,
       roundDate: ROUND_DATE,
       entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
@@ -337,6 +342,41 @@ describe('round totals', () => {
     expect(only?.improvementPoints).toBe(1);
     expect(only?.roundTotal).toBe(2);
     expect(Number.isInteger(only?.roundTotal)).toBe(true);
+  });
+
+  it('awards only improvement points in an improvement-only season', () => {
+    const a = runner('a', 'MALE');
+    const graded = scoreRound({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'IMPROVEMENT_ONLY',
+      roundOrdinal: 2,
+      roundDate: ROUND_DATE,
+      entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
+      priorResults: [],
+    });
+    const current = graded.results[0]?.ageGradePercent as number;
+
+    const result = scoreRound({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'IMPROVEMENT_ONLY',
+      roundOrdinal: 2,
+      roundDate: ROUND_DATE,
+      entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
+      priorResults: [
+        {
+          runnerId: 'a',
+          occurredOn: utc('2025-12-01'),
+          roundOrdinal: 1,
+          ageGradePercent: current - 5,
+        },
+      ],
+    });
+
+    const only = result.results[0];
+    expect(only?.finishingPosition).toBe(1);
+    expect(only?.finishingPoints).toBe(0);
+    expect(only?.improvementPoints).toBe(1);
+    expect(only?.roundTotal).toBe(1);
   });
 });
 

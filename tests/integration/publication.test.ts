@@ -16,6 +16,7 @@ import {
   publishRound,
   recalculateSeason,
   saveRoundResults,
+  setSeasonPointsMode,
   unpublishRound,
   updateRound,
 } from '@/services/time-trials';
@@ -463,6 +464,7 @@ describe('scoring versions', () => {
     const season = await createSeason({
       name: 'Summer 2027',
       type: 'SUMMER',
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       startDate: '2027-04-01',
       endDate: '2027-09-30',
     });
@@ -487,11 +489,11 @@ describe('scoring versions', () => {
     // Written out in full rather than compared against the constant: a version
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V6');
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
     expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V6');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
   });
 
   it('migrates both season and result version metadata during recalculation', async () => {
@@ -577,7 +579,7 @@ describe('scoring versions', () => {
       orderBy: { distanceChoice: 'asc' },
     });
     expect([migratedSeason.twoLapMetres, migratedSeason.threeLapMetres]).toEqual([5922, 7966]);
-    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V6');
+    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
     expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     expect(migrated.map((result) => result.distanceMetres).sort()).toEqual([5922, 7966]);
 
@@ -586,8 +588,76 @@ describe('scoring versions', () => {
       expect(Number(result.ageGradePercent)).toBeLessThan(
         Number(beforeByRunner.get(result.runnerId)?.ageGradePercent),
       );
-      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V6');
+      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
       expect(result.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     }
+  });
+});
+
+describe('season points methods', () => {
+  it('recalculates draft results when a season changes to improvement-only scoring', async () => {
+    const admin = await createAdmin();
+    await signInAs(admin.id);
+    const season = await createWinterSeason('Winter improvement only', 'DRAFT');
+    const runner = await createRunnerRecord({
+      givenName: 'Improving',
+      familyName: 'Runner',
+      dateOfBirth: '1980-01-01',
+      category: 'MALE',
+    });
+    const round = await createRound(season.id, 1, '2025-10-07', 'DRAFT');
+
+    await saveRoundResults(round.id, [
+      { runnerId: runner.id, distanceChoice: 'TWO_LAP', time: '20:00' },
+    ]);
+    const firstScore = await prisma.ttResult.findFirstOrThrow({ where: { roundId: round.id } });
+    await prisma.ttAgeGradeBaseline.create({
+      data: {
+        runnerId: runner.id,
+        recordedOn: new Date('2025-09-01T00:00:00.000Z'),
+        ageGradePercent: Number(firstScore.ageGradePercent) - 5,
+      },
+    });
+    await saveRoundResults(round.id, [
+      { runnerId: runner.id, distanceChoice: 'TWO_LAP', time: '20:00' },
+    ]);
+
+    const combined = await prisma.ttResult.findFirstOrThrow({ where: { roundId: round.id } });
+    expect(combined.finishingPoints).toBe(1);
+    expect(combined.improvementPoints).toBe(1);
+    expect(combined.roundTotal).toBe(2);
+
+    await setSeasonPointsMode(season.id, 'IMPROVEMENT_ONLY');
+
+    const updatedSeason = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
+    const improvementOnly = await prisma.ttResult.findFirstOrThrow({
+      where: { roundId: round.id },
+    });
+    expect(updatedSeason.pointsMode).toBe('IMPROVEMENT_ONLY');
+    expect(updatedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+    expect(improvementOnly.finishingPosition).toBe(1);
+    expect(improvementOnly.finishingPoints).toBe(0);
+    expect(improvementOnly.improvementPoints).toBe(1);
+    expect(improvementOnly.roundTotal).toBe(1);
+
+    await prisma.ttSeason.update({
+      where: { id: season.id },
+      data: { state: 'PUBLISHED', publishedAt: new Date(), publishedById: admin.id },
+    });
+    await publishRound(round.id);
+    const publicRound = await getPublicRoundView(season.slug, round.id);
+    expect(publicRound?.season.pointsMode).toBe('IMPROVEMENT_ONLY');
+    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.finishingPoints).toBe(0);
+    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.improvementPoints).toBe(1);
+    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.roundTotal).toBe(1);
+  });
+
+  it('locks the points method after the first round is published', async () => {
+    const { season } = await setUp();
+    await createRound(season.id, 1, '2025-10-07', 'PUBLISHED');
+
+    await expect(setSeasonPointsMode(season.id, 'IMPROVEMENT_ONLY')).rejects.toMatchObject({
+      code: 'CONFLICT',
+    } satisfies Partial<ServiceError>);
   });
 });

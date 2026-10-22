@@ -17,6 +17,7 @@ import {
   type SeasonScoring,
   type SeasonRoundInput,
   type SeasonType,
+  type TimeTrialPointsMode,
 } from '@/domain/scoring';
 import { ServiceError, conflict, fieldErrorsFrom, notFound, validation } from './errors';
 
@@ -38,6 +39,7 @@ import { ServiceError, conflict, fieldErrorsFrom, notFound, validation } from '.
 export const seasonInputSchema = z.object({
   name: z.string().trim().min(1, 'Required.').max(120),
   type: z.enum(['SUMMER', 'WINTER']),
+  pointsMode: z.enum(['FINISHING_AND_IMPROVEMENT', 'IMPROVEMENT_ONLY']),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.'),
 });
@@ -87,6 +89,7 @@ export async function createSeason(input: SeasonInput) {
       startDate,
       endDate,
       clubYearLabel: seasonClubYearLabel(data.type, startDate),
+      pointsMode: data.pointsMode,
       // Snapshot the distances so a later rules change cannot restate what a
       // historical season was actually run over.
       twoLapMetres: distances.TWO_LAP,
@@ -101,10 +104,67 @@ export async function createSeason(input: SeasonInput) {
     action: 'season.created',
     entityType: 'TtSeason',
     entityId: season.id,
-    summary: { name: season.name, type: season.type, slug: season.slug },
+    summary: {
+      name: season.name,
+      type: season.type,
+      slug: season.slug,
+      pointsMode: season.pointsMode,
+    },
   });
 
   return season;
+}
+
+const pointsModeSchema = z.enum(['FINISHING_AND_IMPROVEMENT', 'IMPROVEMENT_ONLY']);
+
+/**
+ * Changes a season's points method before any round has been published.
+ *
+ * Draft results are recalculated immediately. Once a round is public the mode
+ * becomes historical competition data and cannot be casually rewritten.
+ */
+export async function setSeasonPointsMode(seasonId: string, pointsMode: TimeTrialPointsMode) {
+  const actor = await requireActor();
+  const parsed = pointsModeSchema.safeParse(pointsMode);
+  if (!parsed.success) throw validation('Choose a valid points method.');
+
+  return prisma.$transaction(async (tx) => {
+    const season = await tx.ttSeason.findUnique({
+      where: { id: seasonId },
+      include: {
+        rounds: {
+          where: { state: 'PUBLISHED' },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+    if (!season) throw notFound('That season');
+    if (season.rounds.length > 0) {
+      throw conflict('The points method cannot change after a round has been published.');
+    }
+
+    if (season.pointsMode === parsed.data) return season;
+
+    const updated = await tx.ttSeason.update({
+      where: { id: seasonId },
+      data: { pointsMode: parsed.data },
+    });
+
+    await recalculateSeasonAndFollowing(seasonId, tx);
+    await recordAuditEvent(
+      {
+        actorId: actor.id,
+        action: 'season.updated',
+        entityType: 'TtSeason',
+        entityId: seasonId,
+        summary: { pointsMode: { from: season.pointsMode, to: parsed.data } },
+      },
+      tx,
+    );
+
+    return updated;
+  });
 }
 
 function seasonClubYearLabel(type: SeasonType, startDate: Date): string {
@@ -433,6 +493,7 @@ export async function computeSeasonScoring(
 
   return scoreSeason({
     distances,
+    pointsMode: season.pointsMode,
     rounds,
     priorResults,
     publishedOnly: options.publishedOnly,
@@ -539,6 +600,7 @@ export async function recalculateSeason(
                           : ` (round ${result.previousRoundOrdinal})`
                       }`,
               improverCount: round.improverCount,
+              pointsMode: scoring.pointsMode,
             },
           },
         });

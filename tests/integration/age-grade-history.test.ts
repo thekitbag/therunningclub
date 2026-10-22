@@ -40,6 +40,7 @@ describe('cross-season age-grade history', () => {
     const summer = await createSeason({
       name: 'Summer 2026 history',
       type: 'SUMMER',
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       startDate: '2026-04-01',
       endDate: '2026-09-30',
     });
@@ -75,6 +76,7 @@ describe('cross-season age-grade history', () => {
     const summer = await createSeason({
       name: 'Summer 2026 cascade',
       type: 'SUMMER',
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       startDate: '2026-04-01',
       endDate: '2026-09-30',
     });

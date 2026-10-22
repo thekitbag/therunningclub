@@ -51,6 +51,12 @@ enum SeasonType {
   WINTER
 }
 
+/// Which point components contribute to a time-trial season's leaderboard.
+enum TimeTrialPointsMode {
+  FINISHING_AND_IMPROVEMENT
+  IMPROVEMENT_ONLY
+}
+
 enum PublicationState {
   DRAFT
   PUBLISHED
@@ -94,7 +100,7 @@ model Administrator {
   updatedAt DateTime @updatedAt
 
   sessions           AdminSession[]
-  auditEvents        AuditEvent[]        @relation("AuditActor")
+  auditEvents        AuditEvent[]         @relation("AuditActor")
   issuedResets       AdminPasswordReset[] @relation("ResetIssuer")
   receivedResets     AdminPasswordReset[] @relation("ResetSubject")
   publishedSeasons   TtSeason[]
@@ -227,6 +233,10 @@ model TtSeason {
 
   /// Human label spanning the club year, e.g. "2025/26".
   clubYearLabel String
+
+  /// Snapshotted competition format. Historical seasons keep the points method
+  /// they were run under when a later season adopts a different one.
+  pointsMode TimeTrialPointsMode @default(FINISHING_AND_IMPROVEMENT)
 
   /// Copied from the season defaults at creation so a later rule change cannot
   /// silently restate the distances a historical season was actually run over.

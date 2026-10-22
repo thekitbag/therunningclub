@@ -13,6 +13,7 @@ import {
   SCORING_RULES_VERSION,
   type ScoringCategory,
   type SeasonDistances,
+  type TimeTrialPointsMode,
 } from './types';
 
 export interface SeasonRoundInput {
@@ -30,6 +31,8 @@ export interface SeasonRoundInput {
 export interface SeasonScoringInput {
   /** Authoritative distance snapshot stored on the season. */
   readonly distances: SeasonDistances;
+  /** Snapshotted points method for this season. */
+  readonly pointsMode: TimeTrialPointsMode;
   readonly rounds: readonly SeasonRoundInput[];
   /** Published history and opening baselines from before this season. */
   readonly priorResults?: readonly PriorResultInput[];
@@ -67,6 +70,7 @@ export interface SeasonScoring {
   readonly rounds: readonly SeasonRoundScoring[];
   readonly standings: Readonly<Record<ScoringCategory, readonly SeasonStanding[]>>;
   readonly problems: readonly (ScoringProblem & { roundId: string })[];
+  readonly pointsMode: TimeTrialPointsMode;
   readonly scoringRulesVersion: string;
 }
 
@@ -94,6 +98,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
 
     const scoring = scoreRound({
       distances: input.distances,
+      pointsMode: input.pointsMode,
       roundOrdinal: round.ordinal,
       roundDate: round.date,
       entries: round.entries,
@@ -130,6 +135,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
     rounds: scoredRounds,
     standings: buildStandings(scoredRounds),
     problems,
+    pointsMode: input.pointsMode,
     scoringRulesVersion: SCORING_RULES_VERSION,
   };
 }
@@ -138,8 +144,8 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
  * Builds the best-four leaderboards.
  *
  * Male and female tables are separate *views* of points that were already
- * calculated from the shared finishing and improvement pools — filtering here
- * never re-runs the scoring.
+ * calculated from the season's configured pools — filtering here never re-runs
+ * the scoring.
  */
 export function buildStandings(
   rounds: readonly SeasonRoundScoring[],

@@ -108,6 +108,7 @@ const PRIOR_RESULTS = ALL_ENTRIES.map((e) => {
 
 const scored = scoreRound({
   distances: SEASON_DISTANCES.WINTER,
+  pointsMode: 'FINISHING_AND_IMPROVEMENT',
   roundOrdinal: 6,
   roundDate: ROUND_DATE,
   entries: ALL_ENTRIES,
@@ -209,6 +210,7 @@ describe('golden season best-four totals', () => {
         published: true,
         improverCount: 0,
         problems: [],
+        pointsMode: 'FINISHING_AND_IMPROVEMENT',
         scoringRulesVersion: 'RMPAC_SCORING_V1',
         results: cells
           .filter((cell) => cell.ordinal === ordinal)

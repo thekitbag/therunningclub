@@ -16,6 +16,9 @@ export type DistanceChoice = 'TWO_LAP' | 'THREE_LAP';
 /** Season flavour. Determines the default months and the two lap distances. */
 export type SeasonType = 'SUMMER' | 'WINTER';
 
+/** Which point components contribute to a time-trial round and leaderboard. */
+export type TimeTrialPointsMode = 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY';
+
 /**
  * Identifier for the scoring rules themselves, stored next to every derived
  * value. A rules change bumps this and becomes a deliberate migration; a season
@@ -41,8 +44,10 @@ export type SeasonType = 'SUMMER' | 'WINTER';
  * V5 carries the previous-age-grade comparison across seasons and lap choices.
  * V6 corrects the improvement ladder so only positive improvers determine its
  * size; runners with a comparison who did not improve no longer inflate it.
+ * V7 makes the points method a season snapshot, allowing improvement-only
+ * seasons without rewriting earlier combined-scoring seasons.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V6';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V7';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;

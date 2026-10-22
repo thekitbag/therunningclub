@@ -60,6 +60,7 @@ export default async function RoundEntryPage({
   ]);
 
   const scoredRound = scoring.rounds.find((candidate) => candidate.roundId === roundId);
+  const improvementOnly = round.season.pointsMode === 'IMPROVEMENT_ONLY';
   const namesById = new Map(
     round.results.map((result) => [
       result.runnerId,
@@ -101,7 +102,8 @@ export default async function RoundEntryPage({
         </h1>
         <p className="muted">
           {formatLongDate(round.date)} ·{' '}
-          {round.state === 'PUBLISHED' ? 'Published' : 'Draft — not visible to the public'}
+          {round.state === 'PUBLISHED' ? 'Published' : 'Draft — not visible to the public'} ·{' '}
+          {improvementOnly ? 'improvement points only' : 'finishing + improvement points'}
         </p>
       </header>
 
@@ -138,7 +140,8 @@ export default async function RoundEntryPage({
             <table className="preview-table">
               <caption>
                 Scores the saved times produce. These are recalculated from scratch every time you
-                save — they are never typed in.
+                save — they are never typed in.{' '}
+                {improvementOnly ? 'Finish position is shown but awards no points.' : ''}
               </caption>
               <thead>
                 <tr>
@@ -150,9 +153,11 @@ export default async function RoundEntryPage({
                   <th scope="col" className="num">
                     Pos
                   </th>
-                  <th scope="col" className="num">
-                    Fin
-                  </th>
+                  {!improvementOnly ? (
+                    <th scope="col" className="num">
+                      Fin
+                    </th>
+                  ) : null}
                   <th scope="col" className="num">
                     Age grade
                   </th>
@@ -163,11 +168,13 @@ export default async function RoundEntryPage({
                     Change
                   </th>
                   <th scope="col" className="num">
-                    Imp
+                    {improvementOnly ? 'Score' : 'Imp'}
                   </th>
-                  <th scope="col" className="num">
-                    Total
-                  </th>
+                  {!improvementOnly ? (
+                    <th scope="col" className="num">
+                      Total
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -179,7 +186,7 @@ export default async function RoundEntryPage({
                     <td className="nowrap">{row.distance}</td>
                     <td className="num nowrap">{row.time}</td>
                     <td className="num">{row.finishingPosition}</td>
-                    <td className="num">{row.finishingPoints}</td>
+                    {!improvementOnly ? <td className="num">{row.finishingPoints}</td> : null}
                     <td className="num">{row.ageGrade === null ? '—' : `${row.ageGrade}%`}</td>
                     <td className="num">
                       {row.previousAgeGrade === null ? (
@@ -193,10 +200,14 @@ export default async function RoundEntryPage({
                         ? '—'
                         : `${row.improvement > 0 ? '+' : ''}${row.improvement}`}
                     </td>
-                    <td className="num">{row.improvementPoints}</td>
-                    <td className="num" style={{ fontWeight: 800 }}>
-                      {row.roundTotal}
+                    <td className="num" style={{ fontWeight: improvementOnly ? 800 : undefined }}>
+                      {row.improvementPoints}
                     </td>
+                    {!improvementOnly ? (
+                      <td className="num" style={{ fontWeight: 800 }}>
+                        {row.roundTotal}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>

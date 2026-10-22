@@ -5,6 +5,7 @@ import {
   type DistanceChoice,
   type ScoringCategory,
   type SeasonDistances,
+  type TimeTrialPointsMode,
 } from './types';
 
 /**
@@ -55,6 +56,8 @@ export interface PriorResultInput {
 export interface RoundScoringInput {
   /** Authoritative distance snapshot stored on the season. */
   readonly distances: SeasonDistances;
+  /** Which point components this season awards. */
+  readonly pointsMode: TimeTrialPointsMode;
   readonly roundOrdinal: number;
   readonly roundDate: Date;
   readonly entries: readonly RoundEntryInput[];
@@ -105,6 +108,7 @@ export interface ScoredResult {
 
 export interface RoundScoring {
   readonly roundOrdinal: number;
+  readonly pointsMode: TimeTrialPointsMode;
   readonly results: readonly ScoredResult[];
   readonly problems: readonly ScoringProblem[];
   /** Count of runners with a strictly positive improvement this round. */
@@ -115,13 +119,14 @@ export interface RoundScoring {
 /**
  * Scores one time-trial round.
  *
- * Two independent rankings drive the points:
+ * Two independent rankings are calculated:
  *
- *  1. Finishing points rank by elapsed time *within each distance* but *across*
- *     categories, because the club runs one mixed field per lap option. The
- *     ladder is sized by the LARGER of the two fields, so the winner of each
- *     distance takes that many points and every place steps down by one. Nobody
- *     scores zero for finishing.
+ *  1. Finish position ranks by elapsed time *within each distance* but *across*
+ *     categories, because the club runs one mixed field per lap option. In a
+ *     combined season, the points ladder is sized by the LARGER of the two
+ *     fields, so the winner of each distance takes that many points and every
+ *     place steps down by one. An improvement-only season retains the position
+ *     but awards zero finishing points.
  *  2. Improvement points rank every positive age-grade improvement in one pool
  *     spanning both distances and both categories. The ladder is sized by the
  *     number of runners who actually improved, so the largest improvement
@@ -208,7 +213,10 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     // docs/scoring-rules-2026.md rather than silently followed.
     for (const { item, position, tied } of ranked) {
       item.finishingPosition = position;
-      item.finishingPoints = Math.max(winnerPoints + 1 - position, 0);
+      item.finishingPoints =
+        input.pointsMode === 'FINISHING_AND_IMPROVEMENT'
+          ? Math.max(winnerPoints + 1 - position, 0)
+          : 0;
       item.tiedOnTime = tied;
     }
   }
@@ -265,11 +273,15 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     improvementDisplay: w.improvement === null ? null : roundToTwoDecimals(w.improvement),
     improvementPosition: w.improvementPosition,
     improvementPoints: w.improvementPoints,
-    roundTotal: w.finishingPoints + w.improvementPoints,
+    roundTotal:
+      input.pointsMode === 'IMPROVEMENT_ONLY'
+        ? w.improvementPoints
+        : w.finishingPoints + w.improvementPoints,
   }));
 
   return {
     roundOrdinal: input.roundOrdinal,
+    pointsMode: input.pointsMode,
     results,
     problems,
     improverCount,

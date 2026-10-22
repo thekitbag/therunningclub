@@ -41,6 +41,7 @@ describe('scoreSeason', () => {
   it('threads each round forward as the comparison for the next', () => {
     const result = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       publishedOnly: true,
       rounds: season([
         [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
@@ -64,6 +65,7 @@ describe('scoreSeason', () => {
   it('looks back past a missed round to the last result', () => {
     const result = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       publishedOnly: true,
       rounds: season([
         [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
@@ -91,7 +93,12 @@ describe('scoreSeason', () => {
         entry(ALICE, 'TWO_LAP', mmss(25, 0)),
       ]),
     );
-    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
 
     const leader = result.standings.MALE[0];
     expect(leader?.roundsCompleted).toBe(6);
@@ -102,13 +109,38 @@ describe('scoreSeason', () => {
     expect(leader?.rounds.every((r) => r.total === 2)).toBe(true);
   });
 
+  it('counts the best four improvement scores in an improvement-only season', () => {
+    const progressivelyFaster = [25, 24, 23, 22, 21, 20].map((minutes) => [
+      entry(ALICE, 'TWO_LAP', mmss(minutes, 0)),
+    ]);
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'IMPROVEMENT_ONLY',
+      publishedOnly: true,
+      rounds: season(progressivelyFaster),
+    });
+
+    const standing = result.standings.FEMALE[0];
+    expect(
+      result.rounds.flatMap((round) => round.results).every((row) => row.finishingPoints === 0),
+    ).toBe(true);
+    expect(standing?.rounds.map((round) => round.total)).toEqual([0, 1, 1, 1, 1, 1]);
+    expect(standing?.rounds.filter((round) => round.counts)).toHaveLength(4);
+    expect(standing?.bestFourTotal).toBe(4);
+  });
+
   it('treats a mid-season birthday as a genuine age-grade improvement', () => {
     // Ben turns 47 on 20 February, between rounds 5 and 6. Running the exact
     // same time at a higher age grades better against a slower standard, so the
     // engine correctly sees an improvement even though the clock did not move.
     // This is a property of age grading, not a bug in the comparison chain.
     const rounds = season(Array.from({ length: 6 }, () => [entry(BEN, 'TWO_LAP', mmss(20, 0))]));
-    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
 
     const finalRound = result.rounds[5];
     expect(finalRound?.results[0]?.ageOnRoundDate).toBe(47);
@@ -126,7 +158,12 @@ describe('scoreSeason', () => {
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
     ]);
-    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
     const alice = result.standings.FEMALE[0];
 
     expect(alice?.roundsCompleted).toBe(2);
@@ -140,7 +177,12 @@ describe('scoreSeason', () => {
       [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
       [entry(BEN, 'TWO_LAP', mmss(20, 0))],
     ]);
-    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
     const alice = result.standings.FEMALE[0];
 
     expect(alice?.rounds[0]?.total).toBe(1);
@@ -152,7 +194,12 @@ describe('scoreSeason', () => {
     const rounds = season([
       [entry(ALICE, 'TWO_LAP', mmss(25, 0)), entry(CHLOE, 'TWO_LAP', mmss(25, 0))],
     ]);
-    const result = scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
 
     const [first, second] = result.standings.FEMALE;
     expect(first?.bestFourTotal).toBe(second?.bestFourTotal);
@@ -173,6 +220,7 @@ describe('scoreSeason', () => {
 
     const published = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       publishedOnly: true,
       rounds,
     });
@@ -181,6 +229,7 @@ describe('scoreSeason', () => {
 
     const withDraft = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       publishedOnly: false,
       rounds,
     });
@@ -199,7 +248,12 @@ describe('recalculation after historical edits', () => {
     ]);
 
   const run = (rounds: SeasonRoundInput[]) =>
-    scoreSeason({ distances: SEASON_DISTANCES.WINTER, publishedOnly: true, rounds });
+    scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds,
+    });
 
   it('changing an earlier time changes the later improvement', () => {
     const before = run(buildRounds(mmss(25, 0)));
@@ -260,6 +314,7 @@ describe('recalculation after historical edits', () => {
   it('uses a dated opening baseline for the first managed result', () => {
     const result = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'FINISHING_AND_IMPROVEMENT',
       publishedOnly: true,
       priorResults: [
         {

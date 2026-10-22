@@ -94,6 +94,7 @@ export async function createRunnerRecord(input: {
 export async function createWinterSeason(
   name = 'Winter 2025/26',
   state: 'DRAFT' | 'PUBLISHED' = 'PUBLISHED',
+  pointsMode: 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' = 'FINISHING_AND_IMPROVEMENT',
 ) {
   return prisma.ttSeason.create({
     data: {
@@ -103,6 +104,7 @@ export async function createWinterSeason(
       startDate: utc('2025-10-01'),
       endDate: utc('2026-03-31'),
       clubYearLabel: '2025/26',
+      pointsMode,
       twoLapMetres: SEASON_DISTANCES.WINTER.TWO_LAP,
       threeLapMetres: SEASON_DISTANCES.WINTER.THREE_LAP,
       state,

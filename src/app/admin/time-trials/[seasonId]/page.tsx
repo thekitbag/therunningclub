@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { formatShortDate, toDateInputValue } from '@/lib/dates';
 import { CsrfField } from '@/components/admin/CsrfField';
 import { RoundForms } from './RoundForms';
+import { SeasonPointsModeForm } from './SeasonPointsModeForm';
 import { ROUNDS_PER_SEASON } from '@/domain/scoring';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,19 @@ export default async function SeasonAdminPage({
           {season.twoLapMetres / 1000} km · Three laps {season.threeLapMetres / 1000} km ·{' '}
           {season.state === 'PUBLISHED' ? 'Published' : titleCase(season.state)}
         </p>
+        <p className="muted">
+          {season.pointsMode === 'IMPROVEMENT_ONLY'
+            ? 'Improvement points only'
+            : 'Finishing and improvement points'}
+        </p>
       </header>
+
+      <SeasonPointsModeForm
+        seasonId={season.id}
+        pointsMode={season.pointsMode}
+        locked={season.rounds.some((round) => round.state === 'PUBLISHED')}
+        csrfField={<CsrfField />}
+      />
 
       <RoundForms
         seasonId={season.id}
