@@ -1,8 +1,10 @@
 # Time-trial scoring, 2026
 
-What `RMPAC_SCORING_V7` implements, where it came from, and the remaining open
-point. V7 snapshots the points method on each season so Winter 2026/27 can use
-an improvement-only leaderboard without rewriting Summer 2026. V6 restored the
+What `RMPAC_SCORING_V8` implements, where it came from, and the remaining open
+point. V8 adds attendance-and-improvement scoring for Winter 2026/27: successive
+appearances earn 1 through 6 points and every completed round counts. V7
+snapshots the points method on each season so a new format does not rewrite
+Summer 2026. V6 restored the
 authoritative improvement rule after a live result
 exposed the earlier spreadsheet interpretation: only positive improvers
 determine the ladder's size. V5 carries each runner's last published age grade
@@ -41,14 +43,20 @@ points = N + 1 − position
 Standing still or going backwards neither scores nor increases another
 runner's points.
 
-**Season standing.** Best four round totals, unchanged.
+**Appearance points.** In an attendance-scored season, a runner earns 1 point
+for their first appearance, 2 for their second, continuing to 6 for their sixth.
+This is the runner's appearance number rather than the calendar round number.
+Six appearances therefore earn 21 points.
+
+**Season standing.** Combined and improvement-only seasons count the best four
+round totals. Attendance-and-improvement seasons count all completed rounds.
 
 **Season points method.** Summer 2026 keeps combined finishing and improvement
-points. Winter 2026/27 awards improvement points only: finish position and time
-remain visible, but finishing points are zero and the round total equals the
-improvement points. The best four round scores still count. The method is
-stored on the season, never inferred from its type or dates, and becomes fixed
-when its first round is published.
+points. Winter 2026/27 awards attendance and improvement points: finish position
+and time remain visible, but finishing points are zero and the round total is
+appearance points plus improvement points. Every completed round counts. The
+method is stored on the season, never inferred from its type or dates, and
+becomes fixed when its first round is published.
 
 ## Evidence
 

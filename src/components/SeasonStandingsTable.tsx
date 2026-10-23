@@ -1,8 +1,9 @@
 import { Bib } from '@/components/Bib';
+import type { TimeTrialPointsMode } from '@/domain/scoring';
 import type { PublicStandingRow } from '@/services/public-queries';
 
 /**
- * Best-four season leaderboard.
+ * Season leaderboard using the season's snapshotted counting rule.
  *
  * Scrolls horizontally on a phone rather than shrinking below readable size.
  * A round the runner missed shows an em dash, never a zero — conflating the two
@@ -12,10 +13,12 @@ export function SeasonStandingsTable({
   rows,
   caption,
   roundOrdinals,
+  pointsMode,
 }: {
   rows: readonly PublicStandingRow[];
   caption: string;
   roundOrdinals: readonly number[];
+  pointsMode: TimeTrialPointsMode;
 }) {
   if (rows.length === 0) {
     return (
@@ -34,8 +37,11 @@ export function SeasonStandingsTable({
     >
       <table>
         <caption>
-          {caption}. A shaded, bulleted score is one of the four that count towards the total. An em
-          dash means the runner did not run that round.
+          {caption}.{' '}
+          {pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+            ? 'Every completed round counts towards the total.'
+            : 'A shaded, bulleted score is one of the four that count towards the total.'}{' '}
+          An em dash means the runner did not run that round.
         </caption>
         <thead>
           <tr>
@@ -47,7 +53,7 @@ export function SeasonStandingsTable({
               </th>
             ))}
             <th scope="col" className="num nowrap">
-              Best 4
+              {pointsMode === 'ATTENDANCE_AND_IMPROVEMENT' ? 'Total' : 'Best 4'}
             </th>
             <th scope="col" className="num nowrap">
               Rounds
@@ -86,7 +92,7 @@ export function SeasonStandingsTable({
                 </td>
               ))}
               <td className="num" style={{ fontWeight: 800 }}>
-                {row.bestFourTotal}
+                {row.seasonTotal}
               </td>
               <td className="num">{row.roundsCompleted}</td>
             </tr>

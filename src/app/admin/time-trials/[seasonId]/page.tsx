@@ -57,9 +57,11 @@ export default async function SeasonAdminPage({
           {season.state === 'PUBLISHED' ? 'Published' : titleCase(season.state)}
         </p>
         <p className="muted">
-          {season.pointsMode === 'IMPROVEMENT_ONLY'
-            ? 'Improvement points only'
-            : 'Finishing and improvement points'}
+          {season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+            ? 'Attendance and improvement points · every round counts'
+            : season.pointsMode === 'IMPROVEMENT_ONLY'
+              ? 'Improvement points only · best four count'
+              : 'Finishing and improvement points · best four count'}
         </p>
       </header>
 

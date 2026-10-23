@@ -120,6 +120,17 @@ test('enters results, previews the scores, and publishes the draft round', async
   await expect(page.getByRole('link', { name: /Round 3/ })).toBeVisible();
 });
 
+test('offers attendance and improvement as a season points method', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/admin/time-trials');
+
+  const pointsMethod = page.getByLabel('Points method');
+  await expect(pointsMethod).toBeVisible();
+  await expect(
+    pointsMethod.getByRole('option', { name: 'Attendance and improvement points' }),
+  ).toHaveCount(1);
+});
+
 test('correcting a historical time recalculates the public standings', async ({ page }) => {
   await signIn(page);
 

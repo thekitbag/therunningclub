@@ -61,6 +61,7 @@ export default async function RoundEntryPage({
 
   const scoredRound = scoring.rounds.find((candidate) => candidate.roundId === roundId);
   const improvementOnly = round.season.pointsMode === 'IMPROVEMENT_ONLY';
+  const attendanceMode = round.season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
   const namesById = new Map(
     round.results.map((result) => [
       result.runnerId,
@@ -88,6 +89,7 @@ export default async function RoundEntryPage({
           : Math.round(result.previousAgeGradePercent * 100) / 100,
       improvement: result.improvementDisplay,
       improvementPoints: result.improvementPoints,
+      appearancePoints: result.appearancePoints,
       roundTotal: result.roundTotal,
     }));
 
@@ -103,7 +105,11 @@ export default async function RoundEntryPage({
         <p className="muted">
           {formatLongDate(round.date)} ·{' '}
           {round.state === 'PUBLISHED' ? 'Published' : 'Draft — not visible to the public'} ·{' '}
-          {improvementOnly ? 'improvement points only' : 'finishing + improvement points'}
+          {attendanceMode
+            ? 'attendance + improvement points; every round counts'
+            : improvementOnly
+              ? 'improvement points only'
+              : 'finishing + improvement points'}
         </p>
       </header>
 
@@ -141,7 +147,11 @@ export default async function RoundEntryPage({
               <caption>
                 Scores the saved times produce. These are recalculated from scratch every time you
                 save — they are never typed in.{' '}
-                {improvementOnly ? 'Finish position is shown but awards no points.' : ''}
+                {improvementOnly
+                  ? 'Finish position is shown but awards no points.'
+                  : attendanceMode
+                    ? 'Finish position awards no points; appearance and improvement points are added.'
+                    : ''}
               </caption>
               <thead>
                 <tr>
@@ -153,9 +163,14 @@ export default async function RoundEntryPage({
                   <th scope="col" className="num">
                     Pos
                   </th>
-                  {!improvementOnly ? (
+                  {round.season.pointsMode === 'FINISHING_AND_IMPROVEMENT' ? (
                     <th scope="col" className="num">
                       Fin
+                    </th>
+                  ) : null}
+                  {attendanceMode ? (
+                    <th scope="col" className="num">
+                      App
                     </th>
                   ) : null}
                   <th scope="col" className="num">
@@ -186,7 +201,10 @@ export default async function RoundEntryPage({
                     <td className="nowrap">{row.distance}</td>
                     <td className="num nowrap">{row.time}</td>
                     <td className="num">{row.finishingPosition}</td>
-                    {!improvementOnly ? <td className="num">{row.finishingPoints}</td> : null}
+                    {round.season.pointsMode === 'FINISHING_AND_IMPROVEMENT' ? (
+                      <td className="num">{row.finishingPoints}</td>
+                    ) : null}
+                    {attendanceMode ? <td className="num">{row.appearancePoints}</td> : null}
                     <td className="num">{row.ageGrade === null ? '—' : `${row.ageGrade}%`}</td>
                     <td className="num">
                       {row.previousAgeGrade === null ? (

@@ -42,11 +42,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
           laps {formatKilometres(view.season.twoLapMetres)} · Three laps{' '}
           {formatKilometres(view.season.threeLapMetres)}
         </p>
-        <p className="muted">
-          {view.season.pointsMode === 'IMPROVEMENT_ONLY'
-            ? 'Leaderboard: improvement points only'
-            : 'Leaderboard: finishing and improvement points'}
-        </p>
+        <p className="muted">{pointsModeLabel(view.season.pointsMode)}</p>
         <LastUpdated at={view.season.lastUpdatedAt} />
       </header>
 
@@ -108,10 +104,13 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
             <SeasonStandingsTable
               rows={view.standings.MALE}
               roundOrdinals={roundOrdinals}
+              pointsMode={view.season.pointsMode}
               caption={
-                view.season.pointsMode === 'IMPROVEMENT_ONLY'
-                  ? 'Men’s best-four improvement-points standings'
-                  : 'Men’s best-four season standings'
+                view.season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+                  ? 'Men’s all-round attendance and improvement standings'
+                  : view.season.pointsMode === 'IMPROVEMENT_ONLY'
+                    ? 'Men’s best-four improvement-points standings'
+                    : 'Men’s best-four season standings'
               }
             />
           </section>
@@ -123,10 +122,13 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
             <SeasonStandingsTable
               rows={view.standings.FEMALE}
               roundOrdinals={roundOrdinals}
+              pointsMode={view.season.pointsMode}
               caption={
-                view.season.pointsMode === 'IMPROVEMENT_ONLY'
-                  ? 'Women’s best-four improvement-points standings'
-                  : 'Women’s best-four season standings'
+                view.season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+                  ? 'Women’s all-round attendance and improvement standings'
+                  : view.season.pointsMode === 'IMPROVEMENT_ONLY'
+                    ? 'Women’s best-four improvement-points standings'
+                    : 'Women’s best-four season standings'
               }
             />
           </section>
@@ -147,4 +149,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ seasonS
       <TimeTrialExplainer pointsMode={view.season.pointsMode} />
     </div>
   );
+}
+
+function pointsModeLabel(pointsMode: string): string {
+  if (pointsMode === 'ATTENDANCE_AND_IMPROVEMENT') {
+    return 'Leaderboard: attendance and improvement points · every round counts';
+  }
+  if (pointsMode === 'IMPROVEMENT_ONLY') return 'Leaderboard: improvement points only';
+  return 'Leaderboard: finishing and improvement points';
 }

@@ -11,23 +11,35 @@ import type { TimeTrialPointsMode } from '@/domain/scoring/types';
 
 export function TimeTrialExplainer({ pointsMode }: { pointsMode: TimeTrialPointsMode }) {
   const improvementOnly = pointsMode === 'IMPROVEMENT_ONLY';
+  const attendanceMode = pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
+  const awardsFinishingPoints = pointsMode === 'FINISHING_AND_IMPROVEMENT';
 
   return (
     <details className="explainer">
       <summary>How time-trial scoring works</summary>
       <div className="explainer__body prose">
         <p>
-          {improvementOnly
-            ? 'This season is scored only on age-grade improvement. Finish positions and times are still shown, but they do not award points.'
-            : 'Every round is scored twice over: once for how fast you finished, and once for how much you improved. Your round total is the two added together.'}
+          {attendanceMode
+            ? 'This season rewards turning up and age-grade improvement. Your round total is your appearance points plus any improvement points, and every completed round counts.'
+            : improvementOnly
+              ? 'This season is scored only on age-grade improvement. Finish positions and times are still shown, but they do not award points.'
+              : 'Every round is scored twice over: once for how fast you finished, and once for how much you improved. Your round total is the two added together.'}
         </p>
         <ul>
           <li>
-            <strong>{improvementOnly ? 'Finish position.' : 'Finishing points.'}</strong>{' '}
-            {improvementOnly
+            <strong>{awardsFinishingPoints ? 'Finishing points.' : 'Finish position.'}</strong>{' '}
+            {!awardsFinishingPoints
               ? 'The two-lap and three-lap fields are still ranked separately by time so the result order is clear, but position contributes no points this season.'
               : 'The two-lap and three-lap fields are ranked separately by time, but both use a points ladder based on whichever distance has more finishers. If the larger field has 15 runners, the winner of each distance gets 15 points, second gets 14, and so on. Everyone who finishes scores at least one point. Men and women run in the same field for this — the separate tables below just show the same points split by category.'}
           </li>
+          {attendanceMode ? (
+            <li>
+              <strong>Appearance points.</strong> Your first completed time trial this season earns
+              1 point, your second earns 2, and so on up to 6 for your sixth. It is your own
+              appearance count, not the round number: if round 3 is your first run, it earns 1
+              point. Running all six earns 21 appearance points.
+            </li>
+          ) : null}
           <li>
             <strong>Age grade.</strong> Your time is compared with the world standard for your age
             and category, which is what lets a 60-year-old and a 25-year-old improve against each
@@ -47,9 +59,16 @@ export function TimeTrialExplainer({ pointsMode }: { pointsMode: TimeTrialPoints
             points. That is not a penalty — it just means the comparison starts next time.
           </li>
           <li>
-            <strong>Season total.</strong> Your best four round totals count. Rounds five and six
-            give you room to drop your two weakest scores.{' '}
-            {improvementOnly ? 'Each round total is simply the improvement points earned.' : ''}
+            <strong>Season total.</strong>{' '}
+            {attendanceMode ? (
+              <>Every completed round counts; there are no dropped scores.</>
+            ) : (
+              <>
+                Your best four round totals count. Rounds five and six give you room to drop your
+                two weakest scores.{' '}
+                {improvementOnly ? 'Each round total is simply the improvement points earned.' : ''}
+              </>
+            )}
           </li>
           <li>
             <strong>Ties.</strong> Equal times and equal totals stay equal. Nothing is used to split

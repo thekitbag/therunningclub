@@ -51,7 +51,7 @@ export interface SeasonStandingRound {
   readonly ordinal: number;
   /** Null means the runner did not record a result — never conflate with zero. */
   readonly total: number | null;
-  /** True when this round is one of the best four that count. */
+  /** True when this round counts under the season's configured method. */
   readonly counts: boolean;
 }
 
@@ -62,8 +62,8 @@ export interface SeasonStanding {
   readonly tied: boolean;
   readonly rounds: readonly SeasonStandingRound[];
   readonly roundsCompleted: number;
-  /** Sum of the best four round totals, or of everything run when fewer. */
-  readonly bestFourTotal: number;
+  /** Best four in traditional modes; every completed round in attendance mode. */
+  readonly seasonTotal: number;
 }
 
 export interface SeasonScoring {
@@ -92,13 +92,24 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
   const scoredRounds: SeasonRoundScoring[] = [];
   const problems: (ScoringProblem & { roundId: string })[] = [];
   const priorResults: PriorResultInput[] = [...(input.priorResults ?? [])];
+  const allAppearanceCounts = new Map<string, number>();
+  const publishedAppearanceCounts = new Map<string, number>();
 
   for (const round of ordered) {
     if (input.publishedOnly && !round.published) continue;
 
+    const appearanceCounts = round.published ? publishedAppearanceCounts : allAppearanceCounts;
+    const appearanceNumberByRunner = Object.fromEntries(
+      round.entries.map((entry) => [
+        entry.runnerId,
+        (appearanceCounts.get(entry.runnerId) ?? 0) + 1,
+      ]),
+    );
+
     const scoring = scoreRound({
       distances: input.distances,
       pointsMode: input.pointsMode,
+      appearanceNumberByRunner,
       roundOrdinal: round.ordinal,
       roundDate: round.date,
       entries: round.entries,
@@ -113,6 +124,16 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
     });
     for (const problem of scoring.problems) {
       problems.push({ ...problem, roundId: round.roundId });
+    }
+
+    for (const result of scoring.results) {
+      allAppearanceCounts.set(result.runnerId, (allAppearanceCounts.get(result.runnerId) ?? 0) + 1);
+      if (round.published) {
+        publishedAppearanceCounts.set(
+          result.runnerId,
+          (publishedAppearanceCounts.get(result.runnerId) ?? 0) + 1,
+        );
+      }
     }
 
     // Only a published round becomes a comparable for later improvement
@@ -133,7 +154,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
 
   return {
     rounds: scoredRounds,
-    standings: buildStandings(scoredRounds),
+    standings: buildStandings(scoredRounds, input.pointsMode),
     problems,
     pointsMode: input.pointsMode,
     scoringRulesVersion: SCORING_RULES_VERSION,
@@ -141,7 +162,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
 }
 
 /**
- * Builds the best-four leaderboards.
+ * Builds the season leaderboards.
  *
  * Male and female tables are separate *views* of points that were already
  * calculated from the season's configured pools — filtering here never re-runs
@@ -149,6 +170,7 @@ export function scoreSeason(input: SeasonScoringInput): SeasonScoring {
  */
 export function buildStandings(
   rounds: readonly SeasonRoundScoring[],
+  pointsMode: TimeTrialPointsMode = 'FINISHING_AND_IMPROVEMENT',
 ): Record<ScoringCategory, SeasonStanding[]> {
   const contributing = rounds.filter((round) => round.published);
 
@@ -181,19 +203,16 @@ export function buildStandings(
   const unranked = [...byRunner.values()].map((accumulator) => {
     const totals = [...accumulator.byRound.values()];
 
-    // Choose the counting rounds by value, breaking value ties by earliest
-    // ordinal so the highlighted set is stable between recalculations.
-    const countingRoundOrdinals = new Set(
-      [...totals]
-        .sort((a, b) => b.total - a.total || a.ordinal - b.ordinal)
-        .slice(0, COUNTING_ROUNDS)
-        .map((entry) => entry.ordinal),
-    );
-
-    const bestFourTotal = [...totals]
-      .sort((a, b) => b.total - a.total || a.ordinal - b.ordinal)
-      .slice(0, COUNTING_ROUNDS)
-      .reduce((sum, entry) => sum + entry.total, 0);
+    const attendanceMode = pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
+    // Traditional modes choose the best four by value. Attendance mode exists
+    // to reward turning up, so every completed round counts.
+    const countingTotals = attendanceMode
+      ? totals
+      : [...totals]
+          .sort((a, b) => b.total - a.total || a.ordinal - b.ordinal)
+          .slice(0, COUNTING_ROUNDS);
+    const countingRoundOrdinals = new Set(countingTotals.map((entry) => entry.ordinal));
+    const seasonTotal = countingTotals.reduce((sum, entry) => sum + entry.total, 0);
 
     const roundCells: SeasonStandingRound[] = roundOrder.map((round) => {
       const entry = accumulator.byRound.get(round.roundId);
@@ -210,7 +229,7 @@ export function buildStandings(
       category: accumulator.category,
       rounds: roundCells,
       roundsCompleted: totals.length,
-      bestFourTotal,
+      seasonTotal,
     };
   });
 
@@ -218,9 +237,9 @@ export function buildStandings(
 
   for (const category of ['MALE', 'FEMALE'] as const) {
     const inCategory = unranked.filter((entry) => entry.category === category);
-    // Highest best-four total leads. Equal totals stay tied: v1 has no
+    // Highest applicable season total leads. Equal totals stay tied: v1 has no
     // secondary tie-break, so runs completed is shown but never sorts.
-    const ranked = rankByCompetition(inCategory, (a, b) => b.bestFourTotal - a.bestFourTotal);
+    const ranked = rankByCompetition(inCategory, (a, b) => b.seasonTotal - a.seasonTotal);
     standings[category] = ranked.map(({ item, position, tied }) => ({
       ...item,
       position,

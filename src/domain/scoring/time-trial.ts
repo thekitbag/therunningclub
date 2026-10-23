@@ -58,6 +58,8 @@ export interface RoundScoringInput {
   readonly distances: SeasonDistances;
   /** Which point components this season awards. */
   readonly pointsMode: TimeTrialPointsMode;
+  /** This runner's 1-based appearance number in the current season. */
+  readonly appearanceNumberByRunner?: Readonly<Record<string, number>>;
   readonly roundOrdinal: number;
   readonly roundDate: Date;
   readonly entries: readonly RoundEntryInput[];
@@ -103,6 +105,9 @@ export interface ScoredResult {
   readonly improvementPosition: number | null;
   readonly improvementPoints: number;
 
+  /** 1 through 6 for successive appearances in an attendance-scored season. */
+  readonly appearancePoints: number;
+
   readonly roundTotal: number;
 }
 
@@ -131,6 +136,9 @@ export interface RoundScoring {
  *     spanning both distances and both categories. The ladder is sized by the
  *     number of runners who actually improved, so the largest improvement
  *     takes that many points.
+ *  3. Attendance-and-improvement seasons award each runner their 1-based
+ *     appearance number in the season. Other modes award zero appearance
+ *     points.
  *
  * Displaying separate male and female tables later is a filter over these
  * numbers, never a recalculation.
@@ -151,6 +159,7 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     tiedOnTime: boolean;
     improvementPosition: number | null;
     improvementPoints: number;
+    appearancePoints: number;
   }
 
   const working: Working[] = input.entries.map((entry) => {
@@ -188,6 +197,10 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
       tiedOnTime: false,
       improvementPosition: null,
       improvementPoints: 0,
+      appearancePoints:
+        input.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+          ? Math.max(1, input.appearanceNumberByRunner?.[entry.runnerId] ?? 1)
+          : 0,
     };
   });
 
@@ -273,10 +286,8 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     improvementDisplay: w.improvement === null ? null : roundToTwoDecimals(w.improvement),
     improvementPosition: w.improvementPosition,
     improvementPoints: w.improvementPoints,
-    roundTotal:
-      input.pointsMode === 'IMPROVEMENT_ONLY'
-        ? w.improvementPoints
-        : w.finishingPoints + w.improvementPoints,
+    appearancePoints: w.appearancePoints,
+    roundTotal: roundTotal(input.pointsMode, w),
   }));
 
   return {
@@ -287,6 +298,24 @@ export function scoreRound(input: RoundScoringInput): RoundScoring {
     improverCount,
     scoringRulesVersion: SCORING_RULES_VERSION,
   };
+}
+
+function roundTotal(
+  pointsMode: TimeTrialPointsMode,
+  result: {
+    readonly finishingPoints: number;
+    readonly improvementPoints: number;
+    readonly appearancePoints: number;
+  },
+): number {
+  switch (pointsMode) {
+    case 'FINISHING_AND_IMPROVEMENT':
+      return result.finishingPoints + result.improvementPoints;
+    case 'IMPROVEMENT_ONLY':
+      return result.improvementPoints;
+    case 'ATTENDANCE_AND_IMPROVEMENT':
+      return result.appearancePoints + result.improvementPoints;
+  }
 }
 
 /**

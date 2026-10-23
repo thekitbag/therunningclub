@@ -378,6 +378,44 @@ describe('round totals', () => {
     expect(only?.improvementPoints).toBe(1);
     expect(only?.roundTotal).toBe(1);
   });
+
+  it('adds the runner appearance number to improvement points in an attendance season', () => {
+    const a = runner('a', 'MALE');
+    const graded = scoreRound({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
+      appearanceNumberByRunner: { a: 3 },
+      roundOrdinal: 4,
+      roundDate: ROUND_DATE,
+      entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
+      priorResults: [],
+    });
+    const current = graded.results[0]?.ageGradePercent as number;
+
+    const result = scoreRound({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
+      appearanceNumberByRunner: { a: 3 },
+      roundOrdinal: 4,
+      roundDate: ROUND_DATE,
+      entries: [entry(a, 'TWO_LAP', mmss(20, 0))],
+      priorResults: [
+        {
+          runnerId: 'a',
+          occurredOn: utc('2025-12-01'),
+          roundOrdinal: 2,
+          ageGradePercent: current - 5,
+        },
+      ],
+    });
+
+    const only = result.results[0];
+    expect(only?.finishingPosition).toBe(1);
+    expect(only?.finishingPoints).toBe(0);
+    expect(only?.appearancePoints).toBe(3);
+    expect(only?.improvementPoints).toBe(1);
+    expect(only?.roundTotal).toBe(4);
+  });
 });
 
 describe('validation problems', () => {

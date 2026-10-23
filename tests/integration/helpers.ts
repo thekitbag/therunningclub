@@ -94,7 +94,10 @@ export async function createRunnerRecord(input: {
 export async function createWinterSeason(
   name = 'Winter 2025/26',
   state: 'DRAFT' | 'PUBLISHED' = 'PUBLISHED',
-  pointsMode: 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' = 'FINISHING_AND_IMPROVEMENT',
+  pointsMode:
+    | 'FINISHING_AND_IMPROVEMENT'
+    | 'IMPROVEMENT_ONLY'
+    | 'ATTENDANCE_AND_IMPROVEMENT' = 'FINISHING_AND_IMPROVEMENT',
 ) {
   return prisma.ttSeason.create({
     data: {

@@ -267,7 +267,8 @@ export async function createSeasonAction(
     await createSeason({
       name: text(formData, 'name'),
       type: text(formData, 'type') as 'SUMMER' | 'WINTER',
-      pointsMode: text(formData, 'pointsMode') as 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY',
+      pointsMode: text(formData, 'pointsMode') as
+        'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' | 'ATTENDANCE_AND_IMPROVEMENT',
       startDate: text(formData, 'startDate'),
       endDate: text(formData, 'endDate'),
     });
@@ -288,7 +289,8 @@ export async function setSeasonPointsModeAction(
     const seasonId = text(formData, 'seasonId');
     await setSeasonPointsMode(
       seasonId,
-      text(formData, 'pointsMode') as 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY',
+      text(formData, 'pointsMode') as
+        'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' | 'ATTENDANCE_AND_IMPROVEMENT',
     );
     revalidatePath('/admin/time-trials');
     revalidatePath(`/admin/time-trials/${seasonId}`);

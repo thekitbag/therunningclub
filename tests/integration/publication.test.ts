@@ -489,11 +489,11 @@ describe('scoring versions', () => {
     // Written out in full rather than compared against the constant: a version
     // bump should require a deliberate edit here, which is the point of
     // stamping it in the first place.
-    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+    expect(stored.scoringRulesVersion).toBe('RMPAC_SCORING_V8');
     expect(stored.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
 
     const scoring = await computeSeasonScoring(season.id, { publishedOnly: true });
-    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+    expect(scoring.scoringRulesVersion).toBe('RMPAC_SCORING_V8');
   });
 
   it('migrates both season and result version metadata during recalculation', async () => {
@@ -579,7 +579,7 @@ describe('scoring versions', () => {
       orderBy: { distanceChoice: 'asc' },
     });
     expect([migratedSeason.twoLapMetres, migratedSeason.threeLapMetres]).toEqual([5922, 7966]);
-    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+    expect(migratedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V8');
     expect(migratedSeason.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     expect(migrated.map((result) => result.distanceMetres).sort()).toEqual([5922, 7966]);
 
@@ -588,14 +588,14 @@ describe('scoring versions', () => {
       expect(Number(result.ageGradePercent)).toBeLessThan(
         Number(beforeByRunner.get(result.runnerId)?.ageGradePercent),
       );
-      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+      expect(result.scoringRulesVersion).toBe('RMPAC_SCORING_V8');
       expect(result.ageGradeVersion).toBe('ALAN_JONES_ROAD_2025_RUNBUNDLE_V2');
     }
   });
 });
 
 describe('season points methods', () => {
-  it('recalculates draft results when a season changes to improvement-only scoring', async () => {
+  it('recalculates draft results when a season changes points method', async () => {
     const admin = await createAdmin();
     await signInAs(admin.id);
     const season = await createWinterSeason('Winter improvement only', 'DRAFT');
@@ -634,11 +634,21 @@ describe('season points methods', () => {
       where: { roundId: round.id },
     });
     expect(updatedSeason.pointsMode).toBe('IMPROVEMENT_ONLY');
-    expect(updatedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V7');
+    expect(updatedSeason.scoringRulesVersion).toBe('RMPAC_SCORING_V8');
     expect(improvementOnly.finishingPosition).toBe(1);
     expect(improvementOnly.finishingPoints).toBe(0);
     expect(improvementOnly.improvementPoints).toBe(1);
     expect(improvementOnly.roundTotal).toBe(1);
+
+    await setSeasonPointsMode(season.id, 'ATTENDANCE_AND_IMPROVEMENT');
+
+    const attendanceSeason = await prisma.ttSeason.findUniqueOrThrow({ where: { id: season.id } });
+    const attendance = await prisma.ttResult.findFirstOrThrow({ where: { roundId: round.id } });
+    expect(attendanceSeason.pointsMode).toBe('ATTENDANCE_AND_IMPROVEMENT');
+    expect(attendance.finishingPoints).toBe(0);
+    expect(attendance.appearancePoints).toBe(1);
+    expect(attendance.improvementPoints).toBe(1);
+    expect(attendance.roundTotal).toBe(2);
 
     await prisma.ttSeason.update({
       where: { id: season.id },
@@ -646,10 +656,14 @@ describe('season points methods', () => {
     });
     await publishRound(round.id);
     const publicRound = await getPublicRoundView(season.slug, round.id);
-    expect(publicRound?.season.pointsMode).toBe('IMPROVEMENT_ONLY');
+    expect(publicRound?.season.pointsMode).toBe('ATTENDANCE_AND_IMPROVEMENT');
     expect(publicRound?.byDistance.TWO_LAP.rows[0]?.finishingPoints).toBe(0);
+    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.appearancePoints).toBe(1);
     expect(publicRound?.byDistance.TWO_LAP.rows[0]?.improvementPoints).toBe(1);
-    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.roundTotal).toBe(1);
+    expect(publicRound?.byDistance.TWO_LAP.rows[0]?.roundTotal).toBe(2);
+
+    const publicSeason = await getPublicSeasonView(season.slug);
+    expect(publicSeason?.standings.MALE[0]?.seasonTotal).toBe(2);
   });
 
   it('locks the points method after the first round is published', async () => {

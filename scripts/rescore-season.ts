@@ -223,11 +223,11 @@ async function main(): Promise<void> {
       const names = new Map(
         before.map((b) => [b.runnerId, `${b.runner.givenName} ${b.runner.familyName}`]),
       );
-      console.log(`\nBest-four standings, ${category === 'MALE' ? 'men' : 'ladies'} (top 5):`);
+      console.log(`\nSeason standings, ${category === 'MALE' ? 'men' : 'ladies'} (top 5):`);
       for (const s of standings.slice(0, 5)) {
         console.log(
           `  ${String(s.position).padStart(2)}. ${(names.get(s.runnerId) ?? s.runnerId).padEnd(20)} ` +
-            `${String(s.bestFourTotal).padStart(3)} pts from ${s.roundsCompleted} round(s)${s.tied ? '  (tied)' : ''}`,
+            `${String(s.seasonTotal).padStart(3)} pts from ${s.roundsCompleted} round(s)${s.tied ? '  (tied)' : ''}`,
         );
       }
     }

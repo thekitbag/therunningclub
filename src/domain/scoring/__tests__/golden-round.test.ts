@@ -234,6 +234,7 @@ describe('golden season best-four totals', () => {
             improvementDisplay: null,
             improvementPosition: null,
             improvementPoints: 0,
+            appearancePoints: 0,
             roundTotal: cell.total,
           })),
       };
@@ -247,7 +248,7 @@ describe('golden season best-four totals', () => {
     ]);
     const leader = standings.MALE[0];
     // 20 + 17 + 16 + 15; the 13 and the 11 are dropped.
-    expect(leader?.bestFourTotal).toBe(68);
+    expect(leader?.seasonTotal).toBe(68);
     expect(leader?.roundsCompleted).toBe(6);
     expect(leader?.rounds.filter((r) => r.counts).map((r) => r.total)).toEqual([16, 15, 17, 20]);
   });
@@ -259,7 +260,7 @@ describe('golden season best-four totals', () => {
     const leader = standings.FEMALE[0];
     // 22 + 17 + 12 + 11; the 7 and the 0 are dropped, but the 0 still counts as
     // a round completed because she ran it.
-    expect(leader?.bestFourTotal).toBe(62);
+    expect(leader?.seasonTotal).toBe(62);
     expect(leader?.roundsCompleted).toBe(6);
     expect(leader?.rounds[0]?.total).toBe(0);
     expect(leader?.rounds[0]?.counts).toBe(false);

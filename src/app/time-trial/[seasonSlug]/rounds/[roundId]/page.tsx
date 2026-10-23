@@ -5,6 +5,7 @@ import { TimeTrialExplainer } from '@/components/ScoringExplainer';
 import { formatLongDate } from '@/lib/dates';
 import { formatElapsedTime, formatKilometres } from '@/domain/scoring';
 import { getPublicRoundView, type PublicSeasonResultRow } from '@/services/public-queries';
+import type { TimeTrialPointsMode } from '@/domain/scoring';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,10 +67,11 @@ function RoundTable({
 }: {
   title: string;
   rows: readonly PublicSeasonResultRow[];
-  pointsMode: 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY';
+  pointsMode: TimeTrialPointsMode;
 }) {
   const headingId = title.toLowerCase().replace(/[^a-z]+/g, '-');
   const improvementOnly = pointsMode === 'IMPROVEMENT_ONLY';
+  const attendanceMode = pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
 
   return (
     <section aria-labelledby={headingId}>
@@ -90,7 +92,9 @@ function RoundTable({
               {title}.{' '}
               {improvementOnly
                 ? 'Only improvement points count towards this season.'
-                : 'Round total is finishing points plus improvement points.'}{' '}
+                : attendanceMode
+                  ? 'Round total is appearance points plus improvement points, and every round counts.'
+                  : 'Round total is finishing points plus improvement points.'}{' '}
               A dash in the previous-grade column means there was no earlier published age grade or
               imported opening baseline, so no improvement points could be earned. Comparisons can
               cross seasons and lap choices.
@@ -102,9 +106,14 @@ function RoundTable({
                 <th scope="col" className="num nowrap">
                   Time
                 </th>
-                {!improvementOnly ? (
+                {pointsMode === 'FINISHING_AND_IMPROVEMENT' ? (
                   <th scope="col" className="num">
                     <abbr title="Finishing points">Fin</abbr>
+                  </th>
+                ) : null}
+                {attendanceMode ? (
+                  <th scope="col" className="num">
+                    <abbr title="Appearance points">App</abbr>
                   </th>
                 ) : null}
                 <th scope="col" className="num nowrap">
@@ -147,7 +156,10 @@ function RoundTable({
                     {row.runner.displayName}
                   </th>
                   <td className="num nowrap">{formatElapsedTime(row.elapsedMilliseconds)}</td>
-                  {!improvementOnly ? <td className="num">{row.finishingPoints}</td> : null}
+                  {pointsMode === 'FINISHING_AND_IMPROVEMENT' ? (
+                    <td className="num">{row.finishingPoints}</td>
+                  ) : null}
+                  {attendanceMode ? <td className="num">{row.appearancePoints}</td> : null}
                   <td className="num nowrap">
                     {row.ageGradePercent === null ? '—' : `${row.ageGradePercent.toFixed(2)}%`}
                   </td>

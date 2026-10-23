@@ -99,7 +99,7 @@ export function PublicationPanel({
             <div className="explainer__body">
               <ScrollableTable label="Season totals that will change">
                 <table className="preview-table">
-                  <caption>How the published best-four totals change.</caption>
+                  <caption>How the published season totals change.</caption>
                   <thead>
                     <tr>
                       <th scope="col">Runner</th>

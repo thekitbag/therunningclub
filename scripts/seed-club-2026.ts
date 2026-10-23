@@ -426,6 +426,7 @@ async function recalculate(prisma: PrismaClient, seasonId: string) {
           improvement: result.improvement?.toFixed(5) ?? null,
           improvementPosition: result.improvementPosition,
           improvementPoints: result.improvementPoints,
+          appearancePoints: result.appearancePoints,
           roundTotal: result.roundTotal,
         },
       });

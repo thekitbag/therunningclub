@@ -425,12 +425,12 @@ async function main(): Promise<void> {
     for (const category of ['MALE', 'FEMALE'] as const) {
       const standings = scoring.standings[category].slice(0, 5);
       if (standings.length === 0) continue;
-      console.log(`\nBest-four standings, ${category === 'MALE' ? 'men' : 'ladies'} (top 5):`);
+      console.log(`\nSeason standings, ${category === 'MALE' ? 'men' : 'ladies'} (top 5):`);
       for (const standing of standings) {
         console.log(
           `  ${String(standing.position).padStart(2)}. ` +
             `${(runnerName.get(standing.runnerId) ?? standing.runnerId).padEnd(18)} ` +
-            `${String(standing.bestFourTotal).padStart(3)} pts ` +
+            `${String(standing.seasonTotal).padStart(3)} pts ` +
             `from ${standing.roundsCompleted} round(s)${standing.tied ? '  (tied)' : ''}`,
         );
       }

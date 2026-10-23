@@ -79,9 +79,11 @@ export default async function TimeTrialsAdminPage() {
                     <p className="muted">
                       {formatShortDate(season.startDate)} – {formatShortDate(season.endDate)} ·{' '}
                       {season.rounds.length} of 6 rounds created ·{' '}
-                      {season.pointsMode === 'IMPROVEMENT_ONLY'
-                        ? 'improvement points only'
-                        : 'finishing + improvement points'}
+                      {season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+                        ? 'attendance + improvement points; every round counts'
+                        : season.pointsMode === 'IMPROVEMENT_ONLY'
+                          ? 'improvement points only; best four count'
+                          : 'finishing + improvement points; best four count'}
                     </p>
                   </div>
                   <span className={`tag${season.state === 'PUBLISHED' ? ' tag--green' : ''}`}>

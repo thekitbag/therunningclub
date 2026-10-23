@@ -105,7 +105,7 @@ describe('scoreSeason', () => {
     expect(leader?.rounds.filter((r) => r.counts)).toHaveLength(4);
     // A field of two means 2 finishing points for the win, and nobody improves
     // (identical times, unchanging ages), so the best four sum to 8, not 12.
-    expect(leader?.bestFourTotal).toBe(8);
+    expect(leader?.seasonTotal).toBe(8);
     expect(leader?.rounds.every((r) => r.total === 2)).toBe(true);
   });
 
@@ -126,7 +126,50 @@ describe('scoreSeason', () => {
     ).toBe(true);
     expect(standing?.rounds.map((round) => round.total)).toEqual([0, 1, 1, 1, 1, 1]);
     expect(standing?.rounds.filter((round) => round.counts)).toHaveLength(4);
-    expect(standing?.bestFourTotal).toBe(4);
+    expect(standing?.seasonTotal).toBe(4);
+  });
+
+  it('awards successive appearance points and counts all six attendance rounds', () => {
+    const steady = runner('steady-attender', 'MALE', '1979-07-20');
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds: season(Array.from({ length: 6 }, () => [entry(steady, 'TWO_LAP', mmss(20, 0))])),
+    });
+
+    const results = result.rounds.map((round) => round.results[0]);
+    expect(results.map((row) => row?.finishingPoints)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(results.map((row) => row?.appearancePoints)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(results.map((row) => row?.improvementPoints)).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(results.map((row) => row?.roundTotal)).toEqual([1, 2, 3, 4, 5, 6]);
+
+    const standing = result.standings.MALE[0];
+    expect(standing?.rounds.filter((round) => round.counts)).toHaveLength(6);
+    expect(standing?.roundsCompleted).toBe(6);
+    expect(standing?.seasonTotal).toBe(21);
+  });
+
+  it('numbers a runner’s appearances rather than using the calendar round number', () => {
+    const result = scoreSeason({
+      distances: SEASON_DISTANCES.WINTER,
+      pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
+      publishedOnly: true,
+      rounds: season([
+        [],
+        [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
+        [],
+        [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
+        [],
+        [entry(ALICE, 'TWO_LAP', mmss(25, 0))],
+      ]),
+    });
+
+    const aliceResults = result.rounds.flatMap((round) =>
+      round.results.filter((row) => row.runnerId === ALICE.runnerId),
+    );
+    expect(aliceResults.map((row) => row.appearancePoints)).toEqual([1, 2, 3]);
+    expect(result.standings.FEMALE[0]?.seasonTotal).toBe(6);
   });
 
   it('treats a mid-season birthday as a genuine age-grade improvement', () => {
@@ -150,7 +193,7 @@ describe('scoreSeason', () => {
 
     // A field of one: 1 finishing point every round, plus the single
     // improvement point in the final round.
-    expect(result.standings.MALE[0]?.bestFourTotal).toBe(5);
+    expect(result.standings.MALE[0]?.seasonTotal).toBe(5);
   });
 
   it('sums only what was run when a runner completed fewer than four rounds', () => {
@@ -168,7 +211,7 @@ describe('scoreSeason', () => {
 
     expect(alice?.roundsCompleted).toBe(2);
     // One runner per round, so one finishing point per round.
-    expect(alice?.bestFourTotal).toBe(2);
+    expect(alice?.seasonTotal).toBe(2);
     expect(alice?.rounds.every((r) => r.counts || r.total === null)).toBe(true);
   });
 
@@ -202,7 +245,7 @@ describe('scoreSeason', () => {
     });
 
     const [first, second] = result.standings.FEMALE;
-    expect(first?.bestFourTotal).toBe(second?.bestFourTotal);
+    expect(first?.seasonTotal).toBe(second?.seasonTotal);
     expect(first?.position).toBe(1);
     expect(second?.position).toBe(1);
     expect(first?.tied).toBe(true);

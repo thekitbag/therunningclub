@@ -56,6 +56,7 @@ export interface PublicSeasonResultRow {
   readonly previousAgeGradePercent: number | null;
   readonly improvement: number | null;
   readonly improvementPoints: number;
+  readonly appearancePoints: number;
   readonly roundTotal: number;
   readonly hasComparableResult: boolean;
 }
@@ -66,7 +67,7 @@ export interface PublicStandingRow {
   readonly tied: boolean;
   readonly rounds: readonly { ordinal: number; total: number | null; counts: boolean }[];
   readonly roundsCompleted: number;
-  readonly bestFourTotal: number;
+  readonly seasonTotal: number;
 }
 
 export interface PublicSeasonView {
@@ -193,7 +194,7 @@ export async function getPublicSeasonView(slug: string): Promise<PublicSeasonVie
         counts: round.counts,
       })),
       roundsCompleted: standing.roundsCompleted,
-      bestFourTotal: standing.bestFourTotal,
+      seasonTotal: standing.seasonTotal,
     };
   };
 
@@ -308,6 +309,7 @@ export async function getPublicRoundView(
           : Math.round(result.previousAgeGradePercent * 100) / 100,
       improvement: result.improvementDisplay,
       improvementPoints: result.improvementPoints,
+      appearancePoints: result.appearancePoints,
       roundTotal: result.roundTotal,
       hasComparableResult: result.previousAgeGradePercent !== null,
       // `ageOnRoundDate` is deliberately not carried through: an exact age is
@@ -607,6 +609,7 @@ export interface HomeView {
     readonly resultCount: number;
   } | null;
   readonly timeTrialLeaders: Readonly<Record<'MALE' | 'FEMALE', HomeLeader | null>>;
+  readonly timeTrialPointsMode: TimeTrialPointsMode | null;
   readonly championshipLeaders: Readonly<Record<'MALE' | 'FEMALE', HomeLeader | null>>;
   readonly championshipYear: number | null;
   readonly championshipEarlySeason: boolean;
@@ -658,6 +661,7 @@ export async function getHomeView(): Promise<HomeView> {
           }
         : null,
     timeTrialLeaders,
+    timeTrialPointsMode: seasonView?.season.pointsMode ?? null,
     championshipLeaders,
     championshipYear,
     // "Nobody is eligible yet" is a real, expected early-season state rather
@@ -674,8 +678,8 @@ function leaderFrom(standings: readonly PublicStandingRow[] | undefined): HomeLe
   if (!leader) return null;
   return {
     runner: leader.runner,
-    value: leader.bestFourTotal,
-    detail: `${leader.bestFourTotal} points from ${leader.roundsCompleted} round${
+    value: leader.seasonTotal,
+    detail: `${leader.seasonTotal} points from ${leader.roundsCompleted} round${
       leader.roundsCompleted === 1 ? '' : 's'
     }`,
   };

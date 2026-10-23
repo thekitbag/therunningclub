@@ -121,6 +121,9 @@ export function SeasonForms({
               >
                 <option value="FINISHING_AND_IMPROVEMENT">Finishing and improvement points</option>
                 <option value="IMPROVEMENT_ONLY">Improvement points only</option>
+                <option value="ATTENDANCE_AND_IMPROVEMENT">
+                  Attendance and improvement points
+                </option>
               </select>
               <p className="field__hint">This becomes fixed once the first round is published.</p>
             </div>

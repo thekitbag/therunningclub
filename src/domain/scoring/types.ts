@@ -17,7 +17,8 @@ export type DistanceChoice = 'TWO_LAP' | 'THREE_LAP';
 export type SeasonType = 'SUMMER' | 'WINTER';
 
 /** Which point components contribute to a time-trial round and leaderboard. */
-export type TimeTrialPointsMode = 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY';
+export type TimeTrialPointsMode =
+  'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' | 'ATTENDANCE_AND_IMPROVEMENT';
 
 /**
  * Identifier for the scoring rules themselves, stored next to every derived
@@ -46,8 +47,10 @@ export type TimeTrialPointsMode = 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONL
  * size; runners with a comparison who did not improve no longer inflate it.
  * V7 makes the points method a season snapshot, allowing improvement-only
  * seasons without rewriting earlier combined-scoring seasons.
+ * V8 adds a season-scoped attendance-and-improvement method. Successive
+ * appearances earn 1 through 6 points and every completed round counts.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V7';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V8';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;

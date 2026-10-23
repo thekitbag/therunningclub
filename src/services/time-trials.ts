@@ -39,7 +39,11 @@ import { ServiceError, conflict, fieldErrorsFrom, notFound, validation } from '.
 export const seasonInputSchema = z.object({
   name: z.string().trim().min(1, 'Required.').max(120),
   type: z.enum(['SUMMER', 'WINTER']),
-  pointsMode: z.enum(['FINISHING_AND_IMPROVEMENT', 'IMPROVEMENT_ONLY']),
+  pointsMode: z.enum([
+    'FINISHING_AND_IMPROVEMENT',
+    'IMPROVEMENT_ONLY',
+    'ATTENDANCE_AND_IMPROVEMENT',
+  ]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.'),
 });
@@ -115,7 +119,11 @@ export async function createSeason(input: SeasonInput) {
   return season;
 }
 
-const pointsModeSchema = z.enum(['FINISHING_AND_IMPROVEMENT', 'IMPROVEMENT_ONLY']);
+const pointsModeSchema = z.enum([
+  'FINISHING_AND_IMPROVEMENT',
+  'IMPROVEMENT_ONLY',
+  'ATTENDANCE_AND_IMPROVEMENT',
+]);
 
 /**
  * Changes a season's points method before any round has been published.
@@ -581,6 +589,7 @@ export async function recalculateSeason(
             improvement: toDecimal(result.improvement),
             improvementPosition: result.improvementPosition,
             improvementPoints: result.improvementPoints,
+            appearancePoints: result.appearancePoints,
             roundTotal: result.roundTotal,
             scoringRulesVersion: scoring.scoringRulesVersion,
             ageGradeVersion: AGE_GRADE_VERSION,
@@ -600,6 +609,7 @@ export async function recalculateSeason(
                           : ` (round ${result.previousRoundOrdinal})`
                       }`,
               improverCount: round.improverCount,
+              appearancePoints: result.appearancePoints,
               pointsMode: scoring.pointsMode,
             },
           },
@@ -748,12 +758,12 @@ export async function previewRoundPublication(roundId: string): Promise<Publicat
       const priorStanding = before.standings[category].find(
         (s) => s.runnerId === standing.runnerId,
       );
-      if (!priorStanding || priorStanding.bestFourTotal !== standing.bestFourTotal) {
+      if (!priorStanding || priorStanding.seasonTotal !== standing.seasonTotal) {
         standingsChanges.push({
           runnerName: runnerNames.get(standing.runnerId) ?? 'Unknown runner',
           category,
-          from: priorStanding?.bestFourTotal ?? null,
-          to: standing.bestFourTotal,
+          from: priorStanding?.seasonTotal ?? null,
+          to: standing.seasonTotal,
         });
       }
     }

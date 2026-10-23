@@ -55,6 +55,7 @@ enum SeasonType {
 enum TimeTrialPointsMode {
   FINISHING_AND_IMPROVEMENT
   IMPROVEMENT_ONLY
+  ATTENDANCE_AND_IMPROVEMENT
 }
 
 enum PublicationState {
@@ -322,6 +323,7 @@ model TtResult {
   improvement         Decimal? @db.Decimal(8, 5)
   improvementPosition Int?
   improvementPoints   Int      @default(0)
+  appearancePoints    Int      @default(0)
 
   roundTotal Int @default(0)
 

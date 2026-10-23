@@ -5,7 +5,7 @@ import { setSeasonPointsModeAction } from '../../actions';
 import { IDLE } from '@/lib/action-state';
 import { FormFeedback, SubmitButton } from '@/components/admin/FormFeedback';
 
-type PointsMode = 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY';
+type PointsMode = 'FINISHING_AND_IMPROVEMENT' | 'IMPROVEMENT_ONLY' | 'ATTENDANCE_AND_IMPROVEMENT';
 
 export function SeasonPointsModeForm({
   seasonId,
@@ -30,14 +30,16 @@ export function SeasonPointsModeForm({
         <input type="hidden" name="seasonId" value={seasonId} />
         <FormFeedback state={state} />
         <p className="muted">
-          Improvement-only seasons still show finish position and time, but those positions award no
-          points. The best four improvement scores form the leaderboard.
+          Improvement-only seasons count the best four improvement scores. Attendance seasons award
+          1 point for a runner&rsquo;s first appearance, 2 for their second, and so on; every
+          completed round counts alongside any improvement points.
         </p>
         <div className="field" style={{ maxWidth: '32rem' }}>
           <label htmlFor="points-mode">Leaderboard points</label>
           <select id="points-mode" name="pointsMode" defaultValue={pointsMode} disabled={locked}>
             <option value="FINISHING_AND_IMPROVEMENT">Finishing and improvement points</option>
             <option value="IMPROVEMENT_ONLY">Improvement points only</option>
+            <option value="ATTENDANCE_AND_IMPROVEMENT">Attendance and improvement points</option>
           </select>
           <p className="field__hint">
             {locked

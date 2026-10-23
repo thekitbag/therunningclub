@@ -90,13 +90,21 @@ export default async function HomePage() {
               <LeaderCard
                 heading="Leading man"
                 leader={view.timeTrialLeaders.MALE}
-                unit="best-four total"
+                unit={
+                  view.timeTrialPointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+                    ? 'all-round total'
+                    : 'best-four total'
+                }
                 href="/time-trial"
               />
               <LeaderCard
                 heading="Leading woman"
                 leader={view.timeTrialLeaders.FEMALE}
-                unit="best-four total"
+                unit={
+                  view.timeTrialPointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
+                    ? 'all-round total'
+                    : 'best-four total'
+                }
                 href="/time-trial"
               />
             </div>

@@ -158,6 +158,56 @@ async function main(): Promise<void> {
 
     await recalculate(prisma, season.id);
 
+    // A small archived attendance-scored season exercises the mode-specific
+    // public columns and all-round leaderboard without changing which season
+    // the home page considers current.
+    const attendanceSeason = await prisma.ttSeason.create({
+      data: {
+        name: 'Attendance Test Season',
+        slug: 'attendance-test',
+        type: 'WINTER',
+        startDate: utc('2024-10-01'),
+        endDate: utc('2025-03-31'),
+        clubYearLabel: '2024/25',
+        pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
+        twoLapMetres: SEASON_DISTANCES.WINTER.TWO_LAP,
+        threeLapMetres: SEASON_DISTANCES.WINTER.THREE_LAP,
+        state: 'ARCHIVED',
+        publishedAt: new Date(),
+        publishedById: admin.id,
+        scoringRulesVersion: SCORING_RULES_VERSION,
+        ageGradeVersion: AGE_GRADE_VERSION,
+      },
+    });
+
+    for (const [index, date] of ['2024-10-08', '2024-11-05'].entries()) {
+      const attendanceRound = await prisma.ttRound.create({
+        data: {
+          seasonId: attendanceSeason.id,
+          ordinal: index + 1,
+          name: `Round ${index + 1}`,
+          date: utc(date),
+          state: 'PUBLISHED',
+          publishedAt: new Date(),
+          publishedById: admin.id,
+        },
+      });
+      await prisma.ttResult.create({
+        data: {
+          roundId: attendanceRound.id,
+          runnerId: runnerIds[0]!,
+          distanceChoice: 'TWO_LAP',
+          distanceMetres: SEASON_DISTANCES.WINTER.TWO_LAP,
+          elapsedMilliseconds: parseElapsedTime('20:00'),
+          finishingPosition: 0,
+          finishingPoints: 0,
+          scoringRulesVersion: SCORING_RULES_VERSION,
+          ageGradeVersion: AGE_GRADE_VERSION,
+        },
+      });
+    }
+    await recalculate(prisma, attendanceSeason.id);
+
     // --- Championship -----------------------------------------------------
     const championship = await prisma.championship.create({
       data: {
@@ -315,6 +365,7 @@ async function recalculate(prisma: PrismaClient, seasonId: string): Promise<void
           improvement: result.improvement?.toFixed(5) ?? null,
           improvementPosition: result.improvementPosition,
           improvementPoints: result.improvementPoints,
+          appearancePoints: result.appearancePoints,
           roundTotal: result.roundTotal,
         },
       });

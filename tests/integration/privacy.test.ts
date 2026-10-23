@@ -147,7 +147,7 @@ describe('public responses carry no private field', () => {
 
     expect(serialised).toContain('Alice Private');
     expect(serialised).toContain('Bob Private');
-    expect(view?.standings.FEMALE[0]?.bestFourTotal).toBeGreaterThan(0);
+    expect(view?.standings.FEMALE[0]?.seasonTotal).toBeGreaterThan(0);
   });
 });
 
