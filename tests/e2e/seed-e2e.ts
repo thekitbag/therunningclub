@@ -159,7 +159,7 @@ async function main(): Promise<void> {
     await recalculate(prisma, season.id);
 
     // A small archived attendance-scored season exercises the mode-specific
-    // public columns and all-round leaderboard without changing which season
+    // public columns and component-based leaderboard without changing which season
     // the home page considers current.
     const attendanceSeason = await prisma.ttSeason.create({
       data: {

@@ -31,8 +31,8 @@ export function SeasonPointsModeForm({
         <FormFeedback state={state} />
         <p className="muted">
           Improvement-only seasons count the best four improvement scores. Attendance seasons award
-          1 point for a runner&rsquo;s first appearance, 2 for their second, and so on; every
-          completed round counts alongside any improvement points.
+          1 point for a runner&rsquo;s first appearance, 2 for their second, and so on. Every
+          appearance point counts alongside their best four improvement scores.
         </p>
         <div className="field" style={{ maxWidth: '32rem' }}>
           <label htmlFor="points-mode">Leaderboard points</label>

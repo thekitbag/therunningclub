@@ -106,7 +106,7 @@ export default async function RoundEntryPage({
           {formatLongDate(round.date)} ·{' '}
           {round.state === 'PUBLISHED' ? 'Published' : 'Draft — not visible to the public'} ·{' '}
           {attendanceMode
-            ? 'attendance + improvement points; every round counts'
+            ? 'all appearance points + best four improvement scores'
             : improvementOnly
               ? 'improvement points only'
               : 'finishing + improvement points'}

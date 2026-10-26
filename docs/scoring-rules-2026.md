@@ -1,8 +1,8 @@
 # Time-trial scoring, 2026
 
-What `RMPAC_SCORING_V8` implements, where it came from, and the remaining open
-point. V8 adds attendance-and-improvement scoring for Winter 2026/27: successive
-appearances earn 1 through 6 points and every completed round counts. V7
+What `RMPAC_SCORING_V9` implements, where it came from, and the remaining open
+point. V9 counts all appearance points plus the four highest improvement scores
+for Winter 2026/27. V8 introduced successive appearance points from 1 through 6. V7
 snapshots the points method on each season so a new format does not rewrite
 Summer 2026. V6 restored the
 authoritative improvement rule after a live result
@@ -49,14 +49,16 @@ This is the runner's appearance number rather than the calendar round number.
 Six appearances therefore earn 21 points.
 
 **Season standing.** Combined and improvement-only seasons count the best four
-round totals. Attendance-and-improvement seasons count all completed rounds.
+round totals. Attendance-and-improvement seasons count every appearance point
+plus the runner's four highest improvement-point scores.
 
 **Season points method.** Summer 2026 keeps combined finishing and improvement
 points. Winter 2026/27 awards attendance and improvement points: finish position
 and time remain visible, but finishing points are zero and the round total is
-appearance points plus improvement points. Every completed round counts. The
-method is stored on the season, never inferred from its type or dates, and
-becomes fixed when its first round is published.
+appearance points plus improvement points. The season total keeps all appearance
+points and the best four improvement scores. The method is stored on the season,
+never inferred from its type or dates, and becomes fixed when its first round is
+published.
 
 ## Evidence
 

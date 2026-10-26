@@ -38,7 +38,7 @@ functions in `src/domain/scoring` and are specified in
 - Improvement points rank every positive age-grade improvement in one pool
   spanning both distances and both categories. With N improvers the largest gets
   N points, descending to 1.
-- Round and season totals follow the points method stored on that season. Combined and improvement-only seasons count the best four rounds; attendance-and-improvement seasons add increasing appearance points and count every completed round.
+- Round and season totals follow the points method stored on that season. Combined and improvement-only seasons count the best four rounds; attendance-and-improvement seasons count every appearance point plus the four highest improvement scores.
 - Men's and women's tables are _views_ of the same calculated points, never a
   separate recalculation.
 

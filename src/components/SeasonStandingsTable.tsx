@@ -20,6 +20,8 @@ export function SeasonStandingsTable({
   roundOrdinals: readonly number[];
   pointsMode: TimeTrialPointsMode;
 }) {
+  const attendanceMode = pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
+
   if (rows.length === 0) {
     return (
       <p className="muted" style={{ padding: '1rem 0' }}>
@@ -38,8 +40,8 @@ export function SeasonStandingsTable({
       <table>
         <caption>
           {caption}.{' '}
-          {pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
-            ? 'Every completed round counts towards the total.'
+          {attendanceMode
+            ? 'Round cells show appearance + improvement points. Every appearance point counts; a shaded, bulleted cell marks one of the four improvement scores that count.'
             : 'A shaded, bulleted score is one of the four that count towards the total.'}{' '}
           An em dash means the runner did not run that round.
         </caption>
@@ -49,11 +51,25 @@ export function SeasonStandingsTable({
             <th scope="col">Runner</th>
             {roundOrdinals.map((ordinal) => (
               <th key={ordinal} scope="col" className="num">
-                <abbr title={`Round ${ordinal}`}>R{ordinal}</abbr>
+                <abbr
+                  title={`Round ${ordinal}${attendanceMode ? ': appearance + improvement points' : ''}`}
+                >
+                  R{ordinal}
+                </abbr>
               </th>
             ))}
+            {attendanceMode ? (
+              <>
+                <th scope="col" className="num nowrap">
+                  <abbr title="All appearance points">All App</abbr>
+                </th>
+                <th scope="col" className="num nowrap">
+                  <abbr title="Best four improvement-point scores">Best 4 AG</abbr>
+                </th>
+              </>
+            ) : null}
             <th scope="col" className="num nowrap">
-              {pointsMode === 'ATTENDANCE_AND_IMPROVEMENT' ? 'Total' : 'Best 4'}
+              {attendanceMode ? 'Total' : 'Best 4'}
             </th>
             <th scope="col" className="num nowrap">
               Rounds
@@ -83,6 +99,19 @@ export function SeasonStandingsTable({
                       </span>
                       <span className="visually-hidden">did not run</span>
                     </>
+                  ) : attendanceMode ? (
+                    <>
+                      <span aria-hidden="true">
+                        {round.appearancePoints} + {round.improvementPoints}
+                      </span>
+                      <span className="visually-hidden">
+                        {round.appearancePoints} appearance points plus {round.improvementPoints}{' '}
+                        improvement points
+                        {round.counts
+                          ? '; improvement score counts'
+                          : '; improvement score dropped'}
+                      </span>
+                    </>
                   ) : (
                     <>
                       {round.total}
@@ -91,6 +120,12 @@ export function SeasonStandingsTable({
                   )}
                 </td>
               ))}
+              {attendanceMode ? (
+                <>
+                  <td className="num">{row.appearancePointsTotal}</td>
+                  <td className="num">{row.improvementPointsTotal}</td>
+                </>
+              ) : null}
               <td className="num" style={{ fontWeight: 800 }}>
                 {row.seasonTotal}
               </td>

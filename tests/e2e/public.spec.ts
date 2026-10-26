@@ -93,19 +93,19 @@ test('a published round shows the full scoring breakdown', async ({ page }) => {
   await expect(twoLap.getByText('%').first()).toBeVisible();
 });
 
-test('attendance-scored seasons show appearance points and an all-round total', async ({
-  page,
-}) => {
+test('attendance seasons show all appearances plus best-four improvements', async ({ page }) => {
   await page.goto('/time-trial/attendance-test');
 
   await expect(
-    page.getByText(/attendance and improvement points · every round counts/i),
+    page.getByText(/all appearance points \+ best four improvement scores/i),
   ).toBeVisible();
   const standings = page.getByRole('region', {
-    name: 'Men’s all-round attendance and improvement standings — scrollable table',
+    name: 'Men’s attendance and best-four improvement standings — scrollable table',
   });
+  await expect(standings.getByRole('columnheader', { name: 'All App' })).toBeVisible();
+  await expect(standings.getByRole('columnheader', { name: 'Best 4 AG' })).toBeVisible();
   await expect(standings.getByRole('columnheader', { name: 'Total' })).toBeVisible();
-  await expect(standings.getByRole('columnheader', { name: 'Best 4' })).toHaveCount(0);
+  await expect(standings.getByRole('columnheader', { name: 'Best 4', exact: true })).toHaveCount(0);
 
   await page.getByRole('link', { name: /Round 2/ }).click();
   const results = page.getByRole('region', { name: /^Two laps.*results/i });
@@ -115,6 +115,7 @@ test('attendance-scored seasons show appearance points and an all-round total', 
   const explanation = page.getByText('How time-trial scoring works');
   await explanation.click();
   await expect(page.getByText(/Running all six earns 21 appearance points/i)).toBeVisible();
+  await expect(page.getByText(/your best four improvement-point scores/i)).toBeVisible();
 });
 
 test('championship table marks eligibility in words, not only colour', async ({ page }) => {

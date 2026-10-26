@@ -20,7 +20,7 @@ export function TimeTrialExplainer({ pointsMode }: { pointsMode: TimeTrialPoints
       <div className="explainer__body prose">
         <p>
           {attendanceMode
-            ? 'This season rewards turning up and age-grade improvement. Your round total is your appearance points plus any improvement points, and every completed round counts.'
+            ? 'This season rewards turning up and age-grade improvement. Every appearance point counts towards your season total, along with your four highest improvement-point scores.'
             : improvementOnly
               ? 'This season is scored only on age-grade improvement. Finish positions and times are still shown, but they do not award points.'
               : 'Every round is scored twice over: once for how fast you finished, and once for how much you improved. Your round total is the two added together.'}
@@ -61,7 +61,11 @@ export function TimeTrialExplainer({ pointsMode }: { pointsMode: TimeTrialPoints
           <li>
             <strong>Season total.</strong>{' '}
             {attendanceMode ? (
-              <>Every completed round counts; there are no dropped scores.</>
+              <>
+                All your appearance points count, plus your best four improvement-point scores. If
+                you run all six, you keep all 21 appearance points while your two lowest improvement
+                scores are dropped.
+              </>
             ) : (
               <>
                 Your best four round totals count. Rounds five and six give you room to drop your

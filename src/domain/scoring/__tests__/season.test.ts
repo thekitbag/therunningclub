@@ -129,25 +129,37 @@ describe('scoreSeason', () => {
     expect(standing?.seasonTotal).toBe(4);
   });
 
-  it('awards successive appearance points and counts all six attendance rounds', () => {
+  it('counts every appearance point and only the best four improvement scores', () => {
     const steady = runner('steady-attender', 'MALE', '1979-07-20');
     const result = scoreSeason({
       distances: SEASON_DISTANCES.WINTER,
       pointsMode: 'ATTENDANCE_AND_IMPROVEMENT',
       publishedOnly: true,
-      rounds: season(Array.from({ length: 6 }, () => [entry(steady, 'TWO_LAP', mmss(20, 0))])),
+      priorResults: [
+        {
+          runnerId: steady.runnerId,
+          occurredOn: utc('2025-09-01'),
+          roundOrdinal: null,
+          ageGradePercent: 1,
+        },
+      ],
+      rounds: season(
+        [25, 24, 23, 22, 21, 20].map((minutes) => [entry(steady, 'TWO_LAP', mmss(minutes, 0))]),
+      ),
     });
 
     const results = result.rounds.map((round) => round.results[0]);
     expect(results.map((row) => row?.finishingPoints)).toEqual([0, 0, 0, 0, 0, 0]);
     expect(results.map((row) => row?.appearancePoints)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(results.map((row) => row?.improvementPoints)).toEqual([0, 0, 0, 0, 0, 0]);
-    expect(results.map((row) => row?.roundTotal)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(results.map((row) => row?.improvementPoints)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(results.map((row) => row?.roundTotal)).toEqual([2, 3, 4, 5, 6, 7]);
 
     const standing = result.standings.MALE[0];
-    expect(standing?.rounds.filter((round) => round.counts)).toHaveLength(6);
+    expect(standing?.rounds.filter((round) => round.counts)).toHaveLength(4);
     expect(standing?.roundsCompleted).toBe(6);
-    expect(standing?.seasonTotal).toBe(21);
+    expect(standing?.appearancePointsTotal).toBe(21);
+    expect(standing?.improvementPointsTotal).toBe(4);
+    expect(standing?.seasonTotal).toBe(25);
   });
 
   it('numbers a runner’s appearances rather than using the calendar round number', () => {
@@ -169,6 +181,8 @@ describe('scoreSeason', () => {
       round.results.filter((row) => row.runnerId === ALICE.runnerId),
     );
     expect(aliceResults.map((row) => row.appearancePoints)).toEqual([1, 2, 3]);
+    expect(result.standings.FEMALE[0]?.appearancePointsTotal).toBe(6);
+    expect(result.standings.FEMALE[0]?.improvementPointsTotal).toBe(0);
     expect(result.standings.FEMALE[0]?.seasonTotal).toBe(6);
   });
 

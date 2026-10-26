@@ -58,7 +58,7 @@ export default async function SeasonAdminPage({
         </p>
         <p className="muted">
           {season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
-            ? 'Attendance and improvement points · every round counts'
+            ? 'All appearance points + best four improvement scores'
             : season.pointsMode === 'IMPROVEMENT_ONLY'
               ? 'Improvement points only · best four count'
               : 'Finishing and improvement points · best four count'}

@@ -51,7 +51,9 @@ export interface SeasonStandingRound {
   readonly ordinal: number;
   /** Null means the runner did not record a result — never conflate with zero. */
   readonly total: number | null;
-  /** True when this round counts under the season's configured method. */
+  readonly appearancePoints: number | null;
+  readonly improvementPoints: number | null;
+  /** Whole round in traditional modes; improvement component in attendance mode. */
   readonly counts: boolean;
 }
 
@@ -62,7 +64,11 @@ export interface SeasonStanding {
   readonly tied: boolean;
   readonly rounds: readonly SeasonStandingRound[];
   readonly roundsCompleted: number;
-  /** Best four in traditional modes; every completed round in attendance mode. */
+  /** All appearance points in attendance mode; zero in traditional modes. */
+  readonly appearancePointsTotal: number;
+  /** Best-four improvement subtotal in attendance mode. */
+  readonly improvementPointsTotal: number;
+  /** Best four round totals, or all appearances plus best-four improvements. */
   readonly seasonTotal: number;
 }
 
@@ -177,7 +183,10 @@ export function buildStandings(
   interface Accumulator {
     runnerId: string;
     category: ScoringCategory;
-    byRound: Map<string, { ordinal: number; total: number }>;
+    byRound: Map<
+      string,
+      { ordinal: number; total: number; appearancePoints: number; improvementPoints: number }
+    >;
   }
 
   const byRunner = new Map<string, Accumulator>();
@@ -194,6 +203,8 @@ export function buildStandings(
       accumulator.byRound.set(round.roundId, {
         ordinal: round.roundOrdinal,
         total: result.roundTotal,
+        appearancePoints: result.appearancePoints,
+        improvementPoints: result.improvementPoints,
       });
     }
   }
@@ -204,15 +215,26 @@ export function buildStandings(
     const totals = [...accumulator.byRound.values()];
 
     const attendanceMode = pointsMode === 'ATTENDANCE_AND_IMPROVEMENT';
-    // Traditional modes choose the best four by value. Attendance mode exists
-    // to reward turning up, so every completed round counts.
+    // Traditional modes choose the best four whole round totals. Attendance
+    // mode keeps every appearance point but only the four best improvement
+    // scores, so neither component accidentally changes the other's purpose.
     const countingTotals = attendanceMode
-      ? totals
+      ? [...totals]
+          .sort((a, b) => b.improvementPoints - a.improvementPoints || a.ordinal - b.ordinal)
+          .slice(0, COUNTING_ROUNDS)
       : [...totals]
           .sort((a, b) => b.total - a.total || a.ordinal - b.ordinal)
           .slice(0, COUNTING_ROUNDS);
     const countingRoundOrdinals = new Set(countingTotals.map((entry) => entry.ordinal));
-    const seasonTotal = countingTotals.reduce((sum, entry) => sum + entry.total, 0);
+    const appearancePointsTotal = attendanceMode
+      ? totals.reduce((sum, entry) => sum + entry.appearancePoints, 0)
+      : 0;
+    const improvementPointsTotal = attendanceMode
+      ? countingTotals.reduce((sum, entry) => sum + entry.improvementPoints, 0)
+      : 0;
+    const seasonTotal = attendanceMode
+      ? appearancePointsTotal + improvementPointsTotal
+      : countingTotals.reduce((sum, entry) => sum + entry.total, 0);
 
     const roundCells: SeasonStandingRound[] = roundOrder.map((round) => {
       const entry = accumulator.byRound.get(round.roundId);
@@ -220,6 +242,8 @@ export function buildStandings(
         roundId: round.roundId,
         ordinal: round.roundOrdinal,
         total: entry ? entry.total : null,
+        appearancePoints: entry ? entry.appearancePoints : null,
+        improvementPoints: entry ? entry.improvementPoints : null,
         counts: entry ? countingRoundOrdinals.has(entry.ordinal) : false,
       };
     });
@@ -229,6 +253,8 @@ export function buildStandings(
       category: accumulator.category,
       rounds: roundCells,
       roundsCompleted: totals.length,
+      appearancePointsTotal,
+      improvementPointsTotal,
       seasonTotal,
     };
   });

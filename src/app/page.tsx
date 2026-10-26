@@ -92,7 +92,7 @@ export default async function HomePage() {
                 leader={view.timeTrialLeaders.MALE}
                 unit={
                   view.timeTrialPointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
-                    ? 'all-round total'
+                    ? 'all appearances + best-four improvements'
                     : 'best-four total'
                 }
                 href="/time-trial"
@@ -102,7 +102,7 @@ export default async function HomePage() {
                 leader={view.timeTrialLeaders.FEMALE}
                 unit={
                   view.timeTrialPointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
-                    ? 'all-round total'
+                    ? 'all appearances + best-four improvements'
                     : 'best-four total'
                 }
                 href="/time-trial"

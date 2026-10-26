@@ -80,7 +80,7 @@ export default async function TimeTrialsAdminPage() {
                       {formatShortDate(season.startDate)} – {formatShortDate(season.endDate)} ·{' '}
                       {season.rounds.length} of 6 rounds created ·{' '}
                       {season.pointsMode === 'ATTENDANCE_AND_IMPROVEMENT'
-                        ? 'attendance + improvement points; every round counts'
+                        ? 'all appearance points + best four improvement scores'
                         : season.pointsMode === 'IMPROVEMENT_ONLY'
                           ? 'improvement points only; best four count'
                           : 'finishing + improvement points; best four count'}

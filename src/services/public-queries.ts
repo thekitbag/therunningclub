@@ -65,8 +65,16 @@ export interface PublicStandingRow {
   readonly runner: PublicRunner;
   readonly position: number;
   readonly tied: boolean;
-  readonly rounds: readonly { ordinal: number; total: number | null; counts: boolean }[];
+  readonly rounds: readonly {
+    ordinal: number;
+    total: number | null;
+    appearancePoints: number | null;
+    improvementPoints: number | null;
+    counts: boolean;
+  }[];
   readonly roundsCompleted: number;
+  readonly appearancePointsTotal: number;
+  readonly improvementPointsTotal: number;
   readonly seasonTotal: number;
 }
 
@@ -191,9 +199,13 @@ export async function getPublicSeasonView(slug: string): Promise<PublicSeasonVie
       rounds: standing.rounds.map((round) => ({
         ordinal: round.ordinal,
         total: round.total,
+        appearancePoints: round.appearancePoints,
+        improvementPoints: round.improvementPoints,
         counts: round.counts,
       })),
       roundsCompleted: standing.roundsCompleted,
+      appearancePointsTotal: standing.appearancePointsTotal,
+      improvementPointsTotal: standing.improvementPointsTotal,
       seasonTotal: standing.seasonTotal,
     };
   };

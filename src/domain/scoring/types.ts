@@ -48,9 +48,10 @@ export type TimeTrialPointsMode =
  * V7 makes the points method a season snapshot, allowing improvement-only
  * seasons without rewriting earlier combined-scoring seasons.
  * V8 adds a season-scoped attendance-and-improvement method. Successive
- * appearances earn 1 through 6 points and every completed round counts.
+ * appearances earn 1 through 6 points. V9 keeps every appearance point but
+ * counts only the runner's four highest improvement-point scores.
  */
-export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V8';
+export const SCORING_RULES_VERSION = 'RMPAC_SCORING_V9';
 
 /** Rounds in a time-trial season. Fixed by the club's competition format. */
 export const ROUNDS_PER_SEASON = 6;

@@ -93,7 +93,7 @@ function RoundTable({
               {improvementOnly
                 ? 'Only improvement points count towards this season.'
                 : attendanceMode
-                  ? 'Round total is appearance points plus improvement points, and every round counts.'
+                  ? 'Round total is appearance points plus improvement points. The season counts all appearance points and the best four improvement scores.'
                   : 'Round total is finishing points plus improvement points.'}{' '}
               A dash in the previous-grade column means there was no earlier published age grade or
               imported opening baseline, so no improvement points could be earned. Comparisons can
